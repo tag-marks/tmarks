@@ -1,61 +1,47 @@
 /**
  * 应用配置常量
- * 将原本在 wrangler.toml [vars] 中的配置移到代码中
+ * 注意: 所有配置都应该从 Cloudflare 环境变量 (context.env) 中读取
+ * 这里只提供默认值,实际值由 wrangler.toml 或 Cloudflare Dashboard 配置
  */
 
-export const APP_CONFIG = {
-  /**
-   * 应用环境
-   */
-  ENVIRONMENT: 'development' as 'development' | 'production',
+import type { Env } from './types'
 
-  /**
-   * JWT 访问令牌过期时间
-   */
+/**
+ * 默认配置值 (仅在环境变量未设置时使用)
+ */
+export const DEFAULT_CONFIG = {
   JWT_ACCESS_TOKEN_EXPIRES_IN: '365d',
-
-  /**
-   * JWT 刷新令牌过期时间
-   */
   JWT_REFRESH_TOKEN_EXPIRES_IN: '365d',
-
-  /**
-   * 是否允许用户注册
-   */
-  ALLOW_REGISTRATION: true,
 } as const
 
 /**
- * 获取配置值的辅助函数
+ * 从环境变量获取 JWT 访问令牌过期时间
  */
-export function getConfig() {
-  return APP_CONFIG
+export function getJwtAccessTokenExpiresIn(env?: Env): string {
+  return env?.JWT_ACCESS_TOKEN_EXPIRES_IN || DEFAULT_CONFIG.JWT_ACCESS_TOKEN_EXPIRES_IN
+}
+
+/**
+ * 从环境变量获取 JWT 刷新令牌过期时间
+ */
+export function getJwtRefreshTokenExpiresIn(env?: Env): string {
+  return env?.JWT_REFRESH_TOKEN_EXPIRES_IN || DEFAULT_CONFIG.JWT_REFRESH_TOKEN_EXPIRES_IN
 }
 
 /**
  * 检查是否允许注册
+ * @param env - Cloudflare 环境变量
+ * @returns 是否允许注册
  */
-export function isRegistrationAllowed(): boolean {
-  return APP_CONFIG.ALLOW_REGISTRATION
-}
-
-/**
- * 获取 JWT 访问令牌过期时间
- */
-export function getJwtAccessTokenExpiresIn(): string {
-  return APP_CONFIG.JWT_ACCESS_TOKEN_EXPIRES_IN
-}
-
-/**
- * 获取 JWT 刷新令牌过期时间
- */
-export function getJwtRefreshTokenExpiresIn(): string {
-  return APP_CONFIG.JWT_REFRESH_TOKEN_EXPIRES_IN
+export function isRegistrationAllowed(env: Env): boolean {
+  return env.ALLOW_REGISTRATION === 'true'
 }
 
 /**
  * 获取当前环境
+ * @param env - Cloudflare 环境变量
+ * @returns 当前环境
  */
-export function getEnvironment(): 'development' | 'production' {
-  return APP_CONFIG.ENVIRONMENT
+export function getEnvironment(env: Env): 'development' | 'production' {
+  return env.ENVIRONMENT || 'development'
 }

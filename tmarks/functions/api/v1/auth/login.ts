@@ -96,7 +96,7 @@ export const onRequestPost: PagesFunction<Env>[] = [
     const accessToken = await generateJWT(
       { sub: user.id, session_id: sessionId },
       context.env.JWT_SECRET,
-      getJwtAccessTokenExpiresIn()
+      getJwtAccessTokenExpiresIn(context.env)
     )
 
     // 生成刷新令牌（365天）

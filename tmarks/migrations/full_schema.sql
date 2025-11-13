@@ -233,7 +233,7 @@ CREATE TABLE IF NOT EXISTS shares (
   share_token TEXT NOT NULL UNIQUE,
   is_public INTEGER DEFAULT 1,
   view_count INTEGER DEFAULT 0,
-  created_at TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
   expires_at TEXT DEFAULT NULL,
   FOREIGN KEY (group_id) REFERENCES tab_groups(id) ON DELETE CASCADE,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -253,8 +253,8 @@ CREATE TABLE IF NOT EXISTS statistics (
   items_added INTEGER DEFAULT 0,
   items_deleted INTEGER DEFAULT 0,
   shares_created INTEGER DEFAULT 0,
-  created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
@@ -270,7 +270,7 @@ CREATE INDEX idx_statistics_date ON statistics(stat_date);
 CREATE TABLE IF NOT EXISTS registration_limits (
   date TEXT PRIMARY KEY,
   count INTEGER NOT NULL DEFAULT 0,
-  updated_at TEXT NOT NULL
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
 -- 迁移记录表

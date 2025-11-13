@@ -56,7 +56,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const accessToken = await generateJWT(
       { sub: tokenRecord.user_id, session_id: sessionId },
       context.env.JWT_SECRET,
-      getJwtAccessTokenExpiresIn()
+      getJwtAccessTokenExpiresIn(context.env)
     )
 
     // 获取用户信息
