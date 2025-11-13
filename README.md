@@ -620,7 +620,7 @@ wrangler d1 execute tmarks-prod-db --command "SELECT name FROM sqlite_master WHE
    - **项目名称**: `tmarks`（或自定义）
    - **生产分支**: `main`
    - **框架预设**: `None`
-   - **构建命令**: `cd tmarks && npm install -g pnpm && pnpm install && pnpm build`
+   - **构建命令**: `cd tmarks && pnpm install && pnpm build`
    - **构建输出目录**: `tmarks/dist`
    - **根目录**: `/`（留空或选择根目录）
 6. 点击「Environment variables」，添加环境变量：
@@ -1324,3 +1324,4 @@ Made with ❤️ by TMarks Team
 [⬆ 回到顶部](#-tmarks)
 
 </div>
+
