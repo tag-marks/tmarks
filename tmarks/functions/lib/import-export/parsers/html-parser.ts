@@ -163,7 +163,7 @@ export class HtmlParser implements ImportParser {
 
       // 确定当前书签所属的文件夹
       const bookmarkIndex = bookmarkMatch.index
-      let currentFolderPath = [...folderPath]
+      const currentFolderPath = [...folderPath]
 
       // 查找最近的H3标签
       for (let i = h3Positions.length - 1; i >= 0; i--) {

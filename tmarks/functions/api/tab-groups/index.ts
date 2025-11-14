@@ -81,7 +81,7 @@ export const onRequestGet: PagesFunction<Env, RouteParams, AuthContext>[] = [
           .bind(...params)
           .all<TabGroupRow>()
         groups = result.results
-      } catch (e) {
+      } catch {
         // Fallback: query without is_deleted column
         let query = `
           SELECT *
@@ -127,7 +127,7 @@ export const onRequestGet: PagesFunction<Env, RouteParams, AuthContext>[] = [
           if (group.tags) {
             try {
               tags = JSON.parse(group.tags)
-            } catch (e) {
+            } catch {
               tags = null
             }
           }

@@ -29,6 +29,7 @@ export function ImportSection({ onImport }: ImportSectionProps) {
   const [selectedFormat, setSelectedFormat] = useState<ImportFormat>('html')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isImporting, setIsImporting] = useState(false)
+  const [isValidating, setIsValidating] = useState(false)
   const [importProgress, setImportProgress] = useState<ImportProgress | null>(null)
   const [importResult, setImportResult] = useState<ImportResult | null>(null)
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null)
@@ -76,43 +77,58 @@ export function ImportSection({ onImport }: ImportSectionProps) {
   const handleFileSelect = (file: File) => {
     setSelectedFile(file)
     setImportResult(null)
-    setValidationResult(null)
+    // 简单验证：只检查文件是否可读和格式是否匹配
     validateFile(file)
   }
 
-
-
-  // 文件验证
+  // 文件验证（轻量级验证，只检查基本格式）
   const validateFile = async (file: File) => {
+    setIsValidating(true)
     try {
-      const content = await file.text()
-      
-      const response = await fetch('/api/v1/import', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          format: selectedFormat,
-          content,
-          options: { ...options, batch_size: 1 } // 只验证，不实际导入
-        })
-      })
+      // 检查文件扩展名
+      const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase()
+      const formatConfig = formatOptions.find(f => f.value === selectedFormat)
 
-      if (response.ok) {
-        setValidationResult({ valid: true, errors: [], warnings: [] })
-      } else {
-        const error = await response.json()
+      if (!formatConfig?.extensions.includes(fileExtension)) {
         setValidationResult({
           valid: false,
-          errors: error.errors || [{ field: 'file', message: error.message }],
-          warnings: error.warnings || []
+          errors: [{
+            field: 'file',
+            message: `文件格式不匹配，期望 ${formatConfig?.extensions.join(', ')}，实际为 ${fileExtension}`
+          }],
+          warnings: []
         })
+        return
       }
-    } catch (error) {
+
+      // 检查文件大小（50MB 限制）
+      const maxSize = 50 * 1024 * 1024
+      if (file.size > maxSize) {
+        setValidationResult({
+          valid: false,
+          errors: [{
+            field: 'file',
+            message: `文件过大，最大支持 ${formatFileSize(maxSize)}，当前文件 ${formatFileSize(file.size)}`
+          }],
+          warnings: []
+        })
+        return
+      }
+
+      // 尝试读取文件内容（确保文件可读）
+      await file.text()
+
+      // 基本验证通过
+      setValidationResult({ valid: true, errors: [], warnings: [] })
+
+    } catch {
       setValidationResult({
         valid: false,
-        errors: [{ field: 'file', message: '文件读取失败' }],
+        errors: [{ field: 'file', message: '文件读取失败，请确保文件未损坏' }],
         warnings: []
       })
+    } finally {
+      setIsValidating(false)
     }
   }
 
@@ -258,21 +274,37 @@ export function ImportSection({ onImport }: ImportSectionProps) {
           {selectedFile ? (
             <div className="p-6 text-center">
               <div className="flex flex-col items-center space-y-3">
-                <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
-                <div>
-                  <p className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                    文件已选择
-                  </p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {selectedFile.name} ({formatFileSize(selectedFile.size)})
-                  </p>
-                </div>
-                <button
-                  onClick={handleReset}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700"
-                >
-                  重新选择
-                </button>
+                {isValidating ? (
+                  <>
+                    <Loader2 className="h-8 w-8 text-blue-600 dark:text-blue-400 animate-spin" />
+                    <div>
+                      <p className="text-lg font-medium text-gray-900 dark:text-gray-100">
+                        正在验证文件...
+                      </p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        {selectedFile.name} ({formatFileSize(selectedFile.size)})
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
+                    <div>
+                      <p className="text-lg font-medium text-gray-900 dark:text-gray-100">
+                        文件已选择
+                      </p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        {selectedFile.name} ({formatFileSize(selectedFile.size)})
+                      </p>
+                    </div>
+                    <button
+                      onClick={handleReset}
+                      className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700"
+                    >
+                      重新选择
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           ) : null}
@@ -460,7 +492,7 @@ export function ImportSection({ onImport }: ImportSectionProps) {
       <div className="flex space-x-3">
         <button
           onClick={handleImport}
-          disabled={!selectedFile || !validationResult?.valid || isImporting}
+          disabled={!selectedFile || !validationResult?.valid || isImporting || isValidating}
           className="w-full flex items-center justify-center space-x-2 px-4 py-3 sm:py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
         >
           {isImporting ? (

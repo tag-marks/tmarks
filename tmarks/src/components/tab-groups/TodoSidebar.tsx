@@ -78,7 +78,7 @@ export function TodoSidebar({ tabGroups, onUpdate }: TodoSidebarProps) {
     window.location.href = url
   }
 
-  const handleOpenInIncognito = (_url: string) => {
+  const handleOpenInIncognito = () => {
     // Note: Opening in incognito mode is not directly supported in web browsers
     // This would need to be implemented via browser extension
     showError('隐身模式打开需要浏览器扩展支持')
@@ -323,7 +323,7 @@ export function TodoSidebar({ tabGroups, onUpdate }: TodoSidebarProps) {
                       {
                         label: '在新的隐身窗口中打开',
                         icon: <ExternalLink className="w-4 h-4" />,
-                        onClick: () => handleOpenInIncognito(item.url),
+                        onClick: () => handleOpenInIncognito(),
                       },
                       {
                         label: '重命名',

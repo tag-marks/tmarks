@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { BarChart3, TrendingUp, Layers, Share2, Archive, Globe, ArrowLeft } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { tabGroupsService } from '@/services/tab-groups'
@@ -11,11 +11,7 @@ export function StatisticsPage() {
   const [error, setError] = useState<string | null>(null)
   const [days, setDays] = useState(30)
 
-  useEffect(() => {
-    loadStatistics()
-  }, [days])
-
-  const loadStatistics = async () => {
+  const loadStatistics = useCallback(async () => {
     try {
       setIsLoading(true)
       setError(null)
@@ -27,7 +23,11 @@ export function StatisticsPage() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [days])
+
+  useEffect(() => {
+    loadStatistics()
+  }, [loadStatistics])
 
   if (isLoading) {
     return (

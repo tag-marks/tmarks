@@ -9,21 +9,6 @@ import type { Env } from '../../lib/types'
 import { success, internalError } from '../../lib/response'
 import { requireAuth, AuthContext } from '../../middleware/auth'
 
-interface TabGroupRow {
-  id: string
-  created_at: string
-}
-
-interface TabGroupItemRow {
-  id: string
-  created_at: string
-}
-
-interface ShareRow {
-  id: string
-  created_at: string
-}
-
 interface DomainCount {
   domain: string
   count: number

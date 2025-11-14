@@ -124,9 +124,9 @@ function base64UrlDecode(data: string): string {
 }
 
 /**
- * 解析过期时��字符串 (如 "15m", "7d")
+ * 解析过期时间字符串 (如 "15m", "7d")
  */
-function parseExpiry(expiry: string): number {
+export function parseExpiry(expiry: string): number {
   const match = expiry.match(/^(\d+)([smhd])$/)
   if (!match) {
     throw new Error('Invalid expiry format')

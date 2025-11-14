@@ -59,7 +59,7 @@ export const onRequestGet: PagesFunction<Env, RouteParams, AuthContext>[] = [
         )
           .bind(groupId, userId)
           .first<TabGroupRow>()
-      } catch (e) {
+      } catch {
         // Fallback: query without is_deleted column
         groupRow = await context.env.DB.prepare(
           'SELECT * FROM tab_groups WHERE id = ? AND user_id = ?'
@@ -77,7 +77,7 @@ export const onRequestGet: PagesFunction<Env, RouteParams, AuthContext>[] = [
       if (groupRow.tags) {
         try {
           tags = JSON.parse(groupRow.tags)
-        } catch (e) {
+        } catch {
           tags = null
         }
       }
@@ -241,7 +241,7 @@ export const onRequestDelete: PagesFunction<Env, RouteParams, AuthContext>[] = [
         )
           .bind(groupId, userId)
           .first<TabGroupRow>()
-      } catch (e) {
+      } catch {
         // Fallback: query without is_deleted column
         groupRow = await context.env.DB.prepare(
           'SELECT * FROM tab_groups WHERE id = ? AND user_id = ?'
@@ -261,7 +261,7 @@ export const onRequestDelete: PagesFunction<Env, RouteParams, AuthContext>[] = [
         )
           .bind(new Date().toISOString(), new Date().toISOString(), groupId)
           .run()
-      } catch (e) {
+      } catch {
         // If is_deleted column doesn't exist, do hard delete
         await context.env.DB.prepare('DELETE FROM tab_groups WHERE id = ?')
           .bind(groupId)

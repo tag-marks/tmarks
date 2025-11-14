@@ -128,7 +128,7 @@ export function requireDualAuth(
           context.data.auth_type = 'jwt'
 
           return context.next()
-        } catch (error) {
+        } catch {
           return unauthorized({
             code: 'INVALID_TOKEN',
             message: 'Invalid or expired token',

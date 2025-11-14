@@ -43,7 +43,7 @@ export function TagSidebar({
   const { data, isLoading } = useTags({ sort: sortBy }, { enabled: !availableTags })
   const createTag = useCreateTag()
 
-  const tags = availableTags || data?.tags || []
+  const tags = useMemo(() => availableTags || data?.tags || [], [availableTags, data?.tags])
   const isTagLoading = availableTags ? false : isLoading
 
   // 搜索防抖：延迟200ms更新实际搜索关键词

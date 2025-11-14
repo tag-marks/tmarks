@@ -64,6 +64,7 @@ export class JsonExporter implements Exporter {
     // 根据选项过滤点击统计
     if (!options?.format_options?.include_click_stats) {
       filtered.bookmarks = filtered.bookmarks.map(bookmark => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { click_count, last_clicked_at, ...rest } = bookmark
         return rest
       })

@@ -252,11 +252,11 @@ export function useTabGroupMenu({ onRefresh, onStartRename, onOpenMoveDialog }: 
       try {
         await navigator.clipboard.writeText(shareUrl)
         alert(`分享链接已创建并复制到剪贴板：\n\n${shareUrl}\n\n有效期：30天`)
-      } catch (err) {
+      } catch {
         alert(`分享链接已创建：\n\n${shareUrl}\n\n有效期：30天\n\n（复制到剪贴板失败，请手动复制）`)
       }
-    } catch (err) {
-      console.error('Failed to create share:', err)
+    } catch (error) {
+      console.error('Failed to create share:', error)
       alert('创建分享链接失败')
     }
   }

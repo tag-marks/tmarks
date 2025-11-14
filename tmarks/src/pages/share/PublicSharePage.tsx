@@ -230,17 +230,17 @@ export function PublicSharePage() {
   const currentPageCount = Math.min(PAGE_SIZE, allFilteredBookmarks.length - (currentPage - 1) * PAGE_SIZE)
 
   const shareInfo = shareQuery.data?.profile
-  const rawTags = shareQuery.data?.tags || []
 
   // 对标签进行排序
   const tags = useMemo(() => {
+    const rawTags = shareQuery.data?.tags || []
     const tagsCopy = [...rawTags]
     if (tagSortBy === 'name') {
       return tagsCopy.sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'))
     }
     // 按使用频率排序（bookmark_count）
     return tagsCopy.sort((a, b) => (b.bookmark_count || 0) - (a.bookmark_count || 0))
-  }, [rawTags, tagSortBy])
+  }, [shareQuery.data?.tags, tagSortBy])
 
   // 当筛选条件改变时，重置到第一页（使用防抖后的值）
   useEffect(() => {

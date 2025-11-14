@@ -6,12 +6,16 @@
 import { useState } from 'react'
 import { ArrowLeft, Download, Upload, RefreshCw } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import { ExportSection } from '../../components/import-export/ExportSection'
 import { ImportSection } from '../../components/import-export/ImportSection'
+import { BOOKMARKS_QUERY_KEY } from '../../hooks/useBookmarks'
+import { TAGS_QUERY_KEY } from '../../hooks/useTags'
 import type { ExportFormat, ExportOptions, ImportResult } from '../../../shared/import-export-types'
 
 export function ImportExportPage() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState<'export' | 'import'>('export')
   const [lastOperation, setLastOperation] = useState<{
     type: 'export' | 'import'
@@ -35,6 +39,10 @@ export function ImportExportPage() {
       timestamp: new Date().toLocaleString(),
       details: `成功导入 ${result.success} 个书签，创建 ${result.created_tags.length} 个标签${result.failed > 0 ? `，${result.failed} 个失败` : ''}`
     })
+
+    // 刷新书签和标签缓存
+    queryClient.invalidateQueries({ queryKey: [BOOKMARKS_QUERY_KEY] })
+    queryClient.invalidateQueries({ queryKey: [TAGS_QUERY_KEY] })
   }
 
   const tabs = [

@@ -6,7 +6,7 @@
 
 import type { PagesFunction } from '@cloudflare/workers-types'
 import type { Env } from '../../lib/types'
-import { success, notFound, internalError } from '../../lib/response'
+import { success, internalError } from '../../lib/response'
 import { requireAuth, AuthContext } from '../../middleware/auth'
 
 interface TabGroupRow {
@@ -48,7 +48,7 @@ export const onRequestGet: PagesFunction<Env, string, AuthContext>[] = [
           if (group.tags) {
             try {
               tags = JSON.parse(group.tags)
-            } catch (e) {
+            } catch {
               tags = null
             }
           }

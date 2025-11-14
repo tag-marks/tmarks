@@ -36,7 +36,7 @@ function TitleOnlyCard({ bookmark, onEdit, readOnly = false }: TitleOnlyCardProp
   const domain = useMemo(() => {
     try {
       return new URL(bookmark.url).hostname
-    } catch (error) {
+    } catch {
       return bookmark.url.replace(/^https?:\/\//i, '').split('/')[0] || bookmark.url
     }
   }, [bookmark.url])

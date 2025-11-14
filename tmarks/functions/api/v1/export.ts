@@ -76,16 +76,18 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     // 根据格式选择导出器
     let result
     switch (format) {
-      case 'json':
+      case 'json': {
         const jsonExporter = createJsonExporter()
         result = await jsonExporter.export(exportData, options)
         break
-      
-      case 'html':
+      }
+
+      case 'html': {
         const htmlExporter = createHtmlExporter()
         result = await htmlExporter.export(exportData, options)
         break
-      
+      }
+
       default:
         return new Response(
           JSON.stringify({ error: `Unsupported export format: ${format}` }),

@@ -166,13 +166,15 @@ export function validateInput<T>(validator: (data: unknown) => data is T) {
 
 /**
  * 速率限制中间件（基于 IP）
+ * 注意：此函数当前仅作为占位符，实际速率限制逻辑在 rate-limit.ts 中实现
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function rateLimitByIP(_limit: number, _windowSeconds: number) {
   return async (context: { request: Request; next: () => Promise<Response> }) => {
     // 获取 IP 地址用于将来的速率限制实现
-    const _ip = context.request.headers.get('CF-Connecting-IP') ||
-                context.request.headers.get('X-Forwarded-For') ||
-                'unknown'
+    // const ip = context.request.headers.get('CF-Connecting-IP') ||
+    //            context.request.headers.get('X-Forwarded-For') ||
+    //            'unknown'
 
     // 这里可以集成到现有的速率限制系统
     // 暂时返回继续执行

@@ -253,13 +253,12 @@ interface PullToRefreshProps {
 }
 
 export function PullToRefresh({
-  onRefresh: _onRefresh,
   children,
-  threshold: _threshold = 80,
   className = ''
 }: PullToRefreshProps) {
   // 这里可以实现下拉刷新逻辑
   // 为了简化，暂时只返回子组件
+  // 注意：onRefresh 和 threshold 参数预留用于未来实现下拉刷新功能
   return (
     <div className={`sm:hidden ${className}`}>
       {children}

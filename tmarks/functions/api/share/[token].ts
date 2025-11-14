@@ -93,7 +93,7 @@ export const onRequestGet: PagesFunction<Env, RouteParams> = async (context) => 
     if (groupRow.tags) {
       try {
         tags = JSON.parse(groupRow.tags)
-      } catch (e) {
+      } catch {
         tags = null
       }
     }

@@ -112,19 +112,22 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
  */
 async function parseImportData(format: ImportFormat, content: string) {
   switch (format) {
-    case 'html':
+    case 'html': {
       const htmlParser = createHtmlParser()
       return await htmlParser.parse(content)
+    }
 
-    case 'markdown':
+    case 'markdown': {
       const markdownParser = createMarkdownParser()
       return await markdownParser.parse(content)
+    }
 
     case 'json':
-    case 'tmarks':
+    case 'tmarks': {
       const jsonParser = createJsonParser()
       return await jsonParser.parse(content)
-    
+    }
+
     default:
       throw new Error(`Unsupported import format: ${format}`)
   }
@@ -135,18 +138,21 @@ async function parseImportData(format: ImportFormat, content: string) {
  */
 async function validateImportData(format: ImportFormat, data: any) {
   switch (format) {
-    case 'html':
+    case 'html': {
       const htmlParser = createHtmlParser()
       return await htmlParser.validate(data)
+    }
 
-    case 'markdown':
+    case 'markdown': {
       const markdownParser = createMarkdownParser()
       return await markdownParser.validate(data)
+    }
 
     case 'json':
-    case 'tmarks':
+    case 'tmarks': {
       const jsonParser = createJsonParser()
       return await jsonParser.validate(data)
+    }
 
     default:
       return { valid: false, errors: [{ field: 'format', message: 'Unsupported format' }], warnings: [] }
@@ -488,7 +494,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     const { searchParams } = new URL(context.request.url)
     const format = searchParams.get('format') as ImportFormat
-    const preview = searchParams.get('preview') === 'true'
+    // const preview = searchParams.get('preview') === 'true' // 预留用于未来实现预览功能
 
     if (!format) {
       return new Response(

@@ -2,9 +2,9 @@ import type { PagesFunction } from '@cloudflare/workers-types'
 import type { Env, User } from '../../../lib/types'
 import { badRequest, unauthorized, success, internalError } from '../../../lib/response'
 import { verifyPassword, generateToken, hashRefreshToken, generateUUID } from '../../../lib/crypto'
-import { generateJWT } from '../../../lib/jwt'
+import { generateJWT, parseExpiry } from '../../../lib/jwt'
 import { loginRateLimiter } from '../../../lib/rate-limit'
-import { getJwtAccessTokenExpiresIn } from '../../../lib/config'
+import { getJwtAccessTokenExpiresIn, getJwtRefreshTokenExpiresIn } from '../../../lib/config'
 
 interface LoginRequest {
   username: string
@@ -90,29 +90,33 @@ export const onRequestPost: PagesFunction<Env>[] = [
     // 生成 session_id
     const sessionId = generateUUID()
 
-    // 生成访问令牌（30天）
     const role = user.role ?? 'user'
+
+    // 计算访问令牌有效期（秒）
+    const accessTokenExpiresInStr = getJwtAccessTokenExpiresIn(context.env)
+    const accessTokenExpiresIn = parseExpiry(accessTokenExpiresInStr)
 
     const accessToken = await generateJWT(
       { sub: user.id, session_id: sessionId },
       context.env.JWT_SECRET,
-      getJwtAccessTokenExpiresIn(context.env)
+      accessTokenExpiresInStr
     )
 
-    // 生成刷新令牌（365天）
+    // 生成刷新令牌
     const refreshToken = generateToken(32)
     const refreshTokenHash = await hashRefreshToken(refreshToken)
 
-    // 计算过期时间（365天）
-    const expiresAt = new Date()
-    expiresAt.setDate(expiresAt.getDate() + 365)
+    // 计算刷新令牌过期时间
+    const refreshTokenExpiresInStr = getJwtRefreshTokenExpiresIn(context.env)
+    const refreshTokenExpiresIn = parseExpiry(refreshTokenExpiresInStr)
+    const refreshTokenExpiresAt = new Date(Date.now() + refreshTokenExpiresIn * 1000)
 
     // 存储刷新令牌
     await context.env.DB.prepare(
       `INSERT INTO auth_tokens (user_id, refresh_token_hash, expires_at, created_at)
        VALUES (?, ?, ?, ?)`
     )
-      .bind(user.id, refreshTokenHash, expiresAt.toISOString(), new Date().toISOString())
+      .bind(user.id, refreshTokenHash, refreshTokenExpiresAt.toISOString(), new Date().toISOString())
       .run()
 
     // 记录成功的登录
@@ -136,7 +140,7 @@ export const onRequestPost: PagesFunction<Env>[] = [
       access_token: accessToken,
       refresh_token: refreshToken,
       token_type: 'Bearer',
-      expires_in: 31536000, // 365 days in seconds
+      expires_in: accessTokenExpiresIn,
       user: {
         id: user.id,
         username: user.username,
