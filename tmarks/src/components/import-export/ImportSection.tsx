@@ -14,7 +14,7 @@ import type {
   ImportOptions,
   ImportResult,
   ValidationResult
-} from '../../../shared/import-export-types'
+} from '@shared/import-export-types'
 
 interface ImportSectionProps {
   onImport?: (result: ImportResult) => void

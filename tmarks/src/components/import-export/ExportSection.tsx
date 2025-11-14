@@ -7,7 +7,7 @@ import { useState } from 'react'
 import { Download, FileText, Code, Loader2 } from 'lucide-react'
 import { ProgressIndicator } from '../common/ProgressIndicator'
 import { ErrorDisplay } from '../common/ErrorDisplay'
-import type { ExportFormat, ExportOptions } from '../../../shared/import-export-types'
+import type { ExportFormat, ExportOptions } from '@shared/import-export-types'
 
 interface ExportSectionProps {
   onExport?: (format: ExportFormat, options: ExportOptions) => void

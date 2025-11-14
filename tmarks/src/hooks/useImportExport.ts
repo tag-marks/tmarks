@@ -11,7 +11,7 @@ import type {
   ImportFormat,
   ImportOptions,
   ImportResult
-} from '../../shared/import-export-types'
+} from '@shared/import-export-types'
 
 interface UseImportExportReturn {
   // 导出相关
