@@ -259,12 +259,20 @@ export function BookmarksPage() {
   const bookmarksQuery = useInfiniteBookmarks(queryParams)
   const { refetch: refetchTags } = useTags()
 
-  // 使用 useMemo 缓存书签列表
+  // 使用 useMemo 缓存书签列表，并进行去重处理
   const bookmarks = useMemo(() => {
     if (!bookmarksQuery.data?.pages?.length) {
       return [] as Bookmark[]
     }
-    return bookmarksQuery.data.pages.flatMap(page => page.bookmarks)
+    const allBookmarks = bookmarksQuery.data.pages.flatMap(page => page.bookmarks)
+    // 使用 Map 去重，保留第一次出现的书签
+    const uniqueBookmarksMap = new Map<string, Bookmark>()
+    allBookmarks.forEach(bookmark => {
+      if (!uniqueBookmarksMap.has(bookmark.id)) {
+        uniqueBookmarksMap.set(bookmark.id, bookmark)
+      }
+    })
+    return Array.from(uniqueBookmarksMap.values())
   }, [bookmarksQuery.data])
 
   // 使用 useMemo 缓存可见性筛选结果
