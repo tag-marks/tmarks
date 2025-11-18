@@ -284,21 +284,6 @@ export function BookmarksPage() {
     )
   }, [bookmarks, visibilityFilter])
 
-  const lastPageCount = useMemo(() => {
-    const pages = bookmarksQuery.data?.pages
-    if (!pages || pages.length === 0) {
-      return 0
-    }
-    const lastPageBookmarks = pages[pages.length - 1]?.bookmarks ?? []
-    if (visibilityFilter === 'public') {
-      return lastPageBookmarks.filter((bookmark) => bookmark.is_public).length
-    }
-    if (visibilityFilter === 'private') {
-      return lastPageBookmarks.filter((bookmark) => !bookmark.is_public).length
-    }
-    return lastPageBookmarks.length
-  }, [bookmarksQuery.data, visibilityFilter])
-
   const isInitialLoading = bookmarksQuery.isLoading && bookmarks.length === 0
   const isFetchingExisting = bookmarksQuery.isFetching && !isInitialLoading
 
@@ -759,7 +744,7 @@ export function BookmarksPage() {
                   hasMore={hasMore}
                   isLoading={bookmarksQuery.isFetchingNextPage}
                   onLoadMore={handleLoadMore}
-                  currentCount={lastPageCount}
+                  currentCount={filteredBookmarks.length}
                   totalLoaded={filteredBookmarks.length}
                 />
               )}
