@@ -209,7 +209,7 @@ function TitleOnlyCard({
           </div>
         )}
 
-        {/* 编辑按钮 - 移动端始终显示，桌面端悬停显示 */}
+        {/* 编辑按钮 - 低调显示 */}
         {!!onEdit && !readOnly && !batchMode && (
           <button
             type="button"
@@ -228,11 +228,11 @@ function TitleOnlyCard({
               }, 0)
               onEdit()
             }}
-            className="absolute top-2 right-2 sm:top-3 sm:right-3 w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl border border-white/20 bg-card/80 hover:bg-muted/90 backdrop-blur-sm flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all shadow-lg touch-manipulation"
+            className="absolute top-2 right-2 sm:top-3 sm:right-3 w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all touch-manipulation active:opacity-100"
             title="编辑"
           >
-            <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-base-content" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-base-content drop-shadow-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
             </svg>
           </button>
         )}
