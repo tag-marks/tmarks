@@ -275,13 +275,13 @@ const BookmarkListItem = memo(function BookmarkListItem({
           </p>
         )}
 
-        {/* 第三行：标签（占据整个宽度） */}
+        {/* 第三行：标签（占据整个宽度，智能换行） */}
         {bookmark.tags && bookmark.tags.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
             {bookmark.tags.map((tag) => (
               <span
                 key={tag.id}
-                className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary"
+                className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary whitespace-nowrap"
               >
                 {tag.name}
               </span>
