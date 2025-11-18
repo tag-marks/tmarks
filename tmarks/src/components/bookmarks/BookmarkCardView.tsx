@@ -25,13 +25,21 @@ export function BookmarkCardView({
   const [columns, setColumns] = useState(1)
   const [showEditHint, setShowEditHint] = useState(true)
 
-  // 10秒后隐藏编辑按钮提示
+  // 移动端10秒后隐藏编辑按钮提示
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowEditHint(false)
-    }, 10000)
+    // 检测是否为移动端（宽度小于640px）
+    const isMobile = window.innerWidth < 640
+    
+    if (isMobile) {
+      const timer = setTimeout(() => {
+        setShowEditHint(false)
+      }, 10000)
 
-    return () => clearTimeout(timer)
+      return () => clearTimeout(timer)
+    } else {
+      // PC端立即隐藏
+      setShowEditHint(false)
+    }
   }, [])
 
   // 动态计算列数
