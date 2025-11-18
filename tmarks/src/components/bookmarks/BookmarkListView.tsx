@@ -54,7 +54,7 @@ export function BookmarkListView({
   return (
     <div
       ref={parentRef}
-      className="space-y-2 sm:space-y-3 scrollbar-hide"
+      className="grid grid-cols-2 sm:grid-cols-1 gap-2 sm:gap-3 scrollbar-hide"
       style={enableVirtualization ? { height: '600px', overflow: 'auto' } : undefined}
     >
       {enableVirtualization && (
@@ -161,7 +161,7 @@ const BookmarkListItem = memo(function BookmarkListItem({
   }
 
   return (
-    <div className={`card hover:shadow-lg transition-all relative group mb-2 sm:mb-3 touch-manipulation ${
+    <div className={`card hover:shadow-lg transition-all relative group touch-manipulation ${
       batchMode && isSelected ? 'ring-2 ring-primary' : ''
     }`}>
       {/* 批量选择复选框 */}
@@ -173,7 +173,7 @@ const BookmarkListItem = memo(function BookmarkListItem({
               e.stopPropagation()
               onToggleSelect(bookmark.id)
             }}
-            className={`w-6 h-6 rounded flex items-center justify-center transition-all ${
+            className={`w-5 h-5 sm:w-6 sm:h-6 rounded flex items-center justify-center transition-all ${
               isSelected
                 ? 'bg-primary text-primary-foreground'
                 : 'bg-card border-2 border-border hover:border-primary'
@@ -181,7 +181,7 @@ const BookmarkListItem = memo(function BookmarkListItem({
             title={isSelected ? '取消选择' : '选择'}
           >
             {isSelected && (
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
+              <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
             )}
@@ -197,22 +197,23 @@ const BookmarkListItem = memo(function BookmarkListItem({
             event.stopPropagation()
             onEdit()
           }}
-          className={`absolute top-2 right-2 sm:top-3 sm:right-3 w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:scale-110 z-10 touch-manipulation ${
+          className={`absolute top-2 right-2 sm:top-3 sm:right-3 w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center transition-all hover:scale-110 z-10 touch-manipulation ${
             showEditHint ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 active:opacity-100'
           }`}
           title="编辑"
         >
-          <svg className="w-4 h-4 text-base-content drop-shadow-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+          <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-base-content drop-shadow-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
           </svg>
         </button>
       )}
 
-      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+      {/* 移动端：横向紧凑布局，桌面端：传统列表布局 */}
+      <div className="flex flex-row gap-2 sm:gap-4">
 
-        {/* 封面图 - 优先显示cover_image，失败则显示favicon，都失败则不显示 */}
+        {/* 封面图 - 移动端小图标，桌面端大图 */}
         {shouldShowImage && (
-          <div className="flex-shrink-0 w-20 h-20 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-lg overflow-hidden bg-base-200 flex items-center justify-center">
+          <div className="flex-shrink-0 w-12 h-12 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-md sm:rounded-lg overflow-hidden bg-base-200 flex items-center justify-center">
             {hasCoverImage ? (
               <img
                 src={bookmark.cover_image!}
@@ -224,87 +225,87 @@ const BookmarkListItem = memo(function BookmarkListItem({
               <img
                 src={fallbackFaviconUrl}
                 alt={bookmark.title}
-                className="w-10 h-10 sm:w-12 sm:h-12 object-contain"
+                className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 object-contain"
                 onError={() => setFaviconError(true)}
               />
             ) : null}
           </div>
         )}
 
-        {/* 内容 */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex-1 min-w-0">
-              {/* 标题 */}
-              <h3 className="font-semibold text-base mb-1 flex items-center gap-2">
-                <button
-                  onClick={handleVisit}
-                  className="hover:text-primary transition-colors text-left"
-                  style={{
-                    display: '-webkit-box',
-                    WebkitLineClamp: 1,
-                    WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    wordBreak: 'break-word'
-                  }}
-                  title={bookmark.title}
+        {/* 内容区域 */}
+        <div className="flex-1 min-w-0 flex flex-col justify-center">
+          {/* 标题 - 移动端2行，桌面端1行 */}
+          <button
+            onClick={handleVisit}
+            className="font-semibold text-xs sm:text-base hover:text-primary transition-colors text-left mb-0.5 sm:mb-1"
+            style={{
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              wordBreak: 'break-word',
+              lineHeight: '1.3'
+            }}
+            title={bookmark.title}
+          >
+            {bookmark.title}
+          </button>
+
+          {/* 状态标签 - 移动端和桌面端都显示 */}
+          {(!!bookmark.is_pinned || !!bookmark.is_archived) && (
+            <div className="flex gap-1 mb-1 sm:mb-2">
+              {!!bookmark.is_pinned && (
+                <span className="bg-warning text-warning-content text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full font-medium" title="已置顶">
+                  置顶
+                </span>
+              )}
+              {!!bookmark.is_archived && (
+                <span className="bg-base-content/40 text-card text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full font-medium" title="已归档">
+                  归档
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* URL - 移动端隐藏，桌面端显示 */}
+          <a
+            href={bookmark.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hidden sm:block text-xs text-primary hover:underline mb-2"
+            style={{
+              display: '-webkit-box',
+              WebkitLineClamp: 1,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              wordBreak: 'break-all'
+            }}
+          >
+            {bookmark.url}
+          </a>
+
+          {/* 描述 - 移动端隐藏，桌面端显示 */}
+          {bookmark.description && (
+            <p className="hidden sm:block text-sm text-base-content/70 line-clamp-2 mb-2">
+              {bookmark.description}
+            </p>
+          )}
+
+          {/* 标签 - 移动端隐藏，桌面端显示 */}
+          {bookmark.tags && bookmark.tags.length > 0 && (
+            <div className="hidden sm:flex flex-wrap gap-1.5">
+              {bookmark.tags.map((tag) => (
+                <span
+                  key={tag.id}
+                  className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary"
                 >
-                  {bookmark.title}
-                </button>
-                {!!bookmark.is_pinned && (
-                  <span className="bg-warning text-warning-content text-xs px-2 py-0.5 rounded-full font-medium" title="已置顶">
-                    置顶
-                  </span>
-                )}
-                {!!bookmark.is_archived && (
-                  <span className="bg-base-content/40 text-card text-xs px-2 py-0.5 rounded-full font-medium" title="已归档">
-                    归档
-                  </span>
-                )}
-              </h3>
-
-              {/* URL */}
-              <a
-                href={bookmark.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs text-primary hover:underline block mb-2"
-                style={{
-                  display: '-webkit-box',
-                  WebkitLineClamp: 1,
-                  WebkitBoxOrient: 'vertical',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  wordBreak: 'break-all'
-                }}
-              >
-                {bookmark.url}
-              </a>
-
-              {/* 描述 */}
-              {bookmark.description && (
-                <p className="text-sm text-base-content/70 line-clamp-2 mb-2">
-                  {bookmark.description}
-                </p>
-              )}
-
-              {/* 标签 */}
-              {bookmark.tags && bookmark.tags.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {bookmark.tags.map((tag) => (
-                    <span
-                      key={tag.id}
-                      className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary"
-                    >
-                      {tag.name}
-                    </span>
-                  ))}
-                </div>
-              )}
+                  {tag.name}
+                </span>
+              ))}
             </div>
-
-            </div>
+          )}
         </div>
       </div>
     </div>

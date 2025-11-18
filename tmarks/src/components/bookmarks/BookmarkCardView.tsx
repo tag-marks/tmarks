@@ -48,7 +48,14 @@ export function BookmarkCardView({
       if (!containerRef.current) return
 
       const containerWidth = containerRef.current.offsetWidth
-      // 每列最小宽度280px，间距16px
+      
+      // 移动端（< 640px）固定2列，桌面端动态计算
+      if (containerWidth < 640) {
+        setColumns(2)
+        return
+      }
+
+      // 桌面端：每列最小宽度280px，间距16px
       const minColumnWidth = 280
       const gap = 16
 
@@ -115,20 +122,20 @@ export function BookmarkCardView({
 
   return (
     <div ref={containerRef} className="w-full">
-      {/* CSS Grid 布局 - 并排显示各列 */}
+      {/* CSS Grid 布局 - 并排显示各列，移动端2列，桌面端动态 */}
       {columnedBookmarks.length > 0 && (
         <div
           className="w-full"
           style={{
             display: 'grid',
             gridTemplateColumns: `repeat(${columns}, 1fr)`,
-            gap: '1rem'
+            gap: '0.75rem'
           } as React.CSSProperties}
         >
           {columnedBookmarks.map((col, colIndex) => (
             <div key={`col-${colIndex}`}>
               {col.map((bookmark) => (
-                <div key={bookmark.id} className="mb-3 sm:mb-4">
+                <div key={bookmark.id} className="mb-3">
                   <BookmarkCard
                     bookmark={bookmark}
                     onEdit={onEdit ? () => onEdit(bookmark) : undefined}
@@ -264,13 +271,13 @@ function BookmarkCard({
         </button>
       )}
 
-      {/* 图片区域 - 优先显示cover_image，失败则显示favicon，都在顶部居中 */}
+      {/* 图片区域 - 移动端更小，桌面端正常 */}
       {shouldShowImageArea && (
         <div
           className={`relative bg-base-200 overflow-hidden flex-shrink-0 flex items-center justify-center ${
             imageType === 'favicon' || shouldShowFallback 
-              ? 'h-24 sm:h-20' 
-              : 'h-40 sm:h-32'
+              ? 'h-16 sm:h-20' 
+              : 'h-28 sm:h-32'
           }`}
           style={{ borderTopLeftRadius: 'calc(var(--radius) * 1.5)', borderTopRightRadius: 'calc(var(--radius) * 1.5)' }}
         >
@@ -280,7 +287,7 @@ function BookmarkCard({
               alt={bookmark.title}
               className={
                 imageType === 'favicon'
-                  ? 'w-14 h-14 sm:w-12 sm:h-12 object-contain'
+                  ? 'w-10 h-10 sm:w-12 sm:h-12 object-contain'
                   : 'w-full h-full object-cover'
               }
               onTypeDetected={setImageType}
@@ -290,60 +297,60 @@ function BookmarkCard({
             <img
               src={fallbackFaviconUrl}
               alt={bookmark.title}
-              className="w-14 h-14 sm:w-12 sm:h-12 object-contain"
+              className="w-10 h-10 sm:w-12 sm:h-12 object-contain"
               onError={() => setFaviconError(true)}
             />
           ) : null}
         </div>
       )}
 
-      {/* 内容区 */}
-      <div className="flex flex-col p-4 sm:p-3 gap-2.5 sm:gap-2 relative">
+      {/* 内容区 - 移动端更紧凑 */}
+      <div className="flex flex-col p-2.5 sm:p-3 gap-1.5 sm:gap-2 relative">
         {/* 状态标识 */}
         {(!!bookmark.is_pinned || !!bookmark.is_archived) && (
-          <div className="flex gap-1.5 mb-1">
+          <div className="flex gap-1 mb-0.5">
             {!!bookmark.is_pinned && (
-              <span className="bg-warning text-warning-content text-xs px-2 py-0.5 rounded-full font-medium">
+              <span className="bg-warning text-warning-content text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full font-medium">
                 置顶
               </span>
             )}
             {!!bookmark.is_archived && (
-              <span className="bg-base-content/40 text-base-100 text-xs px-2 py-0.5 rounded-full font-medium">
+              <span className="bg-base-content/40 text-base-100 text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full font-medium">
                 归档
               </span>
             )}
           </div>
         )}
 
-        {/* 标题 */}
+        {/* 标题 - 移动端更小字体 */}
         <h3
-          className="font-semibold text-base sm:text-sm line-clamp-2 hover:text-primary transition-colors leading-snug"
+          className="font-semibold text-xs sm:text-sm line-clamp-2 hover:text-primary transition-colors leading-tight sm:leading-snug"
           title={bookmark.title}
         >
           {bookmark.title}
         </h3>
 
-        {/* 描述 */}
+        {/* 描述 - 移动端隐藏 */}
         {bookmark.description && (
-          <p className="text-sm sm:text-xs text-base-content/70 line-clamp-3 leading-relaxed">
+          <p className="hidden sm:block text-xs text-base-content/70 line-clamp-3 leading-relaxed">
             {bookmark.description}
           </p>
         )}
 
-        {/* 标签 */}
+        {/* 标签 - 移动端只显示2个 */}
         {bookmark.tags && bookmark.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mt-1">
-            {bookmark.tags.slice(0, 4).map((tag) => (
+          <div className="flex flex-wrap gap-1 sm:gap-1.5 mt-0.5 sm:mt-1">
+            {bookmark.tags.slice(0, 2).map((tag) => (
               <span
                 key={tag.id}
-                className="text-xs sm:text-[11px] px-2.5 sm:px-2 py-1 sm:py-0.5 rounded-full bg-primary/10 text-primary"
+                className="text-[10px] sm:text-[11px] px-1.5 sm:px-2 py-0.5 rounded-full bg-primary/10 text-primary"
               >
                 {tag.name}
               </span>
             ))}
-            {bookmark.tags.length > 4 && (
-              <span className="text-xs sm:text-[11px] text-base-content/60 flex items-center px-1">
-                +{bookmark.tags.length - 4}
+            {bookmark.tags.length > 2 && (
+              <span className="text-[10px] sm:text-[11px] text-base-content/60 flex items-center px-0.5 sm:px-1">
+                +{bookmark.tags.length - 2}
               </span>
             )}
           </div>
