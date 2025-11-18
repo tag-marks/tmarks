@@ -20,13 +20,13 @@ export function BookmarkMinimalListView({
 }: BookmarkMinimalListViewProps) {
   return (
     <div className="rounded-xl border border-base-300 overflow-hidden overflow-x-auto">
-      {/* 表头 - 移动端隐藏部分列 */}
-      <div className={`grid ${batchMode ? 'grid-cols-[auto_minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto] sm:grid-cols-[auto_minmax(0,2fr)_minmax(0,2fr)_minmax(0,2fr)_auto]' : 'grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,2fr)_minmax(0,2fr)_minmax(0,2fr)_auto]'} gap-2 sm:gap-4 px-3 sm:px-4 py-2 text-xs uppercase tracking-wide text-base-content/50 bg-base-200`}>
+      {/* 表头 - 移动端只显示标题和操作 */}
+      <div className={`grid ${batchMode ? 'grid-cols-[auto_1fr_auto] sm:grid-cols-[auto_minmax(0,2fr)_minmax(0,2fr)_minmax(0,2fr)_auto]' : 'grid-cols-[1fr_auto] sm:grid-cols-[minmax(0,2fr)_minmax(0,2fr)_minmax(0,2fr)_auto]'} gap-2 sm:gap-4 px-3 sm:px-4 py-2 text-xs uppercase tracking-wide text-base-content/50 bg-base-200`}>
         {batchMode && <span></span>}
         <span>标题</span>
         <span className="hidden sm:block">网址</span>
         <span className="hidden sm:block">备注</span>
-        <span className="text-right">{readOnly ? '' : ''}</span>
+        <span className="text-right sm:block">{readOnly ? '' : ''}</span>
       </div>
       <div>
         {bookmarks.map((bookmark) => (
@@ -72,7 +72,7 @@ function MinimalRow({
   }
 
   return (
-    <div className={`grid ${batchMode ? 'grid-cols-[auto_minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto] sm:grid-cols-[auto_minmax(0,2fr)_minmax(0,2fr)_minmax(0,2fr)_auto]' : 'grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,2fr)_minmax(0,2fr)_minmax(0,2fr)_auto]'} gap-2 sm:gap-4 px-3 sm:px-4 py-3 text-sm items-center border-t border-base-200 first:border-t-0 hover:bg-base-200/60 ${
+    <div className={`grid ${batchMode ? 'grid-cols-[auto_1fr_auto] sm:grid-cols-[auto_minmax(0,2fr)_minmax(0,2fr)_minmax(0,2fr)_auto]' : 'grid-cols-[1fr_auto] sm:grid-cols-[minmax(0,2fr)_minmax(0,2fr)_minmax(0,2fr)_auto]'} gap-2 sm:gap-4 px-3 sm:px-4 py-3 text-sm items-center border-t border-base-200 first:border-t-0 hover:bg-base-200/60 ${
       batchMode && isSelected ? 'bg-primary/10' : ''
     }`}>
       {batchMode && onToggleSelect && (
