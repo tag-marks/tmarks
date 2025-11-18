@@ -1,4 +1,4 @@
-import { useRef, memo } from 'react'
+import { useRef, memo, useState } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import type { Bookmark } from '@/lib/types'
 import { useRecordClick } from '@/hooks/useBookmarks'
@@ -108,6 +108,8 @@ const BookmarkListItem = memo(function BookmarkListItem({
   isSelected = false,
   onToggleSelect,
 }: BookmarkListItemProps) {
+  const [coverImageError, setCoverImageError] = useState(false)
+  const [faviconError, setFaviconError] = useState(false)
   const recordClick = useRecordClick()
 
   // 生成Google Favicon URL作为fallback
@@ -121,6 +123,11 @@ const BookmarkListItem = memo(function BookmarkListItem({
   }
 
   const fallbackFaviconUrl = getFaviconUrl(bookmark.url)
+  
+  // 决定显示什么图片
+  const hasCoverImage = bookmark.cover_image && !coverImageError
+  const shouldShowFallback = !hasCoverImage && fallbackFaviconUrl && !faviconError
+  const shouldShowImage = hasCoverImage || shouldShowFallback
 
   const handleVisit = () => {
     // 记录点击统计
@@ -179,23 +186,24 @@ const BookmarkListItem = memo(function BookmarkListItem({
 
       <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
 
-        {/* 封面图 - 优先显示cover_image，失败则显示favicon */}
-        {(bookmark.cover_image || fallbackFaviconUrl) && (
-          <div className="flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-lg overflow-hidden bg-base-200 flex items-center justify-center">
-            <img
-              src={bookmark.cover_image || fallbackFaviconUrl}
-              alt={bookmark.title}
-              className={bookmark.cover_image ? "w-full h-full object-cover" : "w-12 h-12 object-contain"}
-              onError={(e) => {
-                // 如果cover_image失败且有fallback，切换到fallback
-                if (bookmark.cover_image && fallbackFaviconUrl) {
-                  e.currentTarget.src = fallbackFaviconUrl
-                  e.currentTarget.className = "w-12 h-12 object-contain"
-                } else {
-                  e.currentTarget.style.display = 'none'
-                }
-              }}
-            />
+        {/* 封面图 - 优先显示cover_image，失败则显示favicon，都失败则不显示 */}
+        {shouldShowImage && (
+          <div className="flex-shrink-0 w-20 h-20 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-lg overflow-hidden bg-base-200 flex items-center justify-center">
+            {hasCoverImage ? (
+              <img
+                src={bookmark.cover_image!}
+                alt={bookmark.title}
+                className="w-full h-full object-cover"
+                onError={() => setCoverImageError(true)}
+              />
+            ) : shouldShowFallback ? (
+              <img
+                src={fallbackFaviconUrl}
+                alt={bookmark.title}
+                className="w-10 h-10 sm:w-12 sm:h-12 object-contain"
+                onError={() => setFaviconError(true)}
+              />
+            ) : null}
           </div>
         )}
 

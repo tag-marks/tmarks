@@ -28,13 +28,21 @@ export function BookmarkTitleView({
       if (!containerRef.current) return
 
       const containerWidth = containerRef.current.offsetWidth
+      
+      // 移动端（< 640px）固定2列
+      if (containerWidth < 640) {
+        setColumns(2)
+        return
+      }
+      
+      // 桌面端动态计算列数
       // 每列最小宽度240px，间距10px
       const minColumnWidth = 240
       const gap = 10
 
-      // 计算可以容纳的列数
-      let cols = 1
-      for (let i = 1; i <= 4; i++) {
+      // 计算可以容纳的列数（最多4列）
+      let cols = 2 // 至少2列
+      for (let i = 2; i <= 4; i++) {
         const totalWidth = i * minColumnWidth + (i - 1) * gap
         if (containerWidth >= totalWidth) {
           cols = i
@@ -171,14 +179,14 @@ function TitleOnlyCard({
 
   return (
     <div className="relative group">
-      <div className={`rounded-xl border border-border/70 bg-card/95 backdrop-blur-sm shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/10 ${
+      <div className={`rounded-lg sm:rounded-xl border border-border/70 bg-card/95 backdrop-blur-sm shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/10 ${
         batchMode && isSelected ? 'ring-2 ring-primary' : ''
       }`}>
-        <div className="pointer-events-none absolute inset-0 rounded-xl bg-gradient-to-br from-primary/4 via-transparent to-secondary/8 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+        <div className="pointer-events-none absolute inset-0 rounded-lg sm:rounded-xl bg-gradient-to-br from-primary/4 via-transparent to-secondary/8 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
 
         {/* 批量选择复选框 */}
         {batchMode && onToggleSelect && (
-          <div className="absolute top-3 left-3 z-10">
+          <div className="absolute top-2 left-2 sm:top-3 sm:left-3 z-10">
             <button
               onClick={(e) => {
                 e.preventDefault()
@@ -201,6 +209,7 @@ function TitleOnlyCard({
           </div>
         )}
 
+        {/* 编辑按钮 - 移动端始终显示，桌面端悬停显示 */}
         {!!onEdit && !readOnly && !batchMode && (
           <button
             type="button"
@@ -219,16 +228,27 @@ function TitleOnlyCard({
               }, 0)
               onEdit()
             }}
-            className="absolute top-3 right-3 w-8 h-8 rounded-xl border border-white/20 bg-card/80 hover:bg-muted/90 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all shadow-lg"
+            className="absolute top-2 right-2 sm:top-3 sm:right-3 w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl border border-white/20 bg-card/80 hover:bg-muted/90 backdrop-blur-sm flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all shadow-lg touch-manipulation"
             title="编辑"
           >
-            <svg className="w-4 h-4 text-base-content" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-base-content" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
             </svg>
           </button>
         )}
 
-        <div className="relative z-10 px-5 py-4 space-y-2 pointer-events-none">
+        {/* 内容区 - 移动端更紧凑 */}
+        <div className="relative z-10 px-3 py-3 sm:px-5 sm:py-4 space-y-1.5 sm:space-y-2 pointer-events-none">
+          {/* 置顶标识 - 移动端也显示 */}
+          {bookmark.is_pinned && (
+            <div className="flex items-center gap-1 mb-1">
+              <span className="bg-warning text-warning-content text-[10px] sm:text-xs px-1.5 py-0.5 rounded-full font-medium">
+                置顶
+              </span>
+            </div>
+          )}
+          
+          {/* 标题 */}
           <button
             type="button"
             onClick={(event) => {
@@ -245,15 +265,17 @@ function TitleOnlyCard({
                 handleCardClick()
               }
             }}
-            className="pointer-events-auto inline-flex max-w-full text-left text-sm font-semibold leading-snug text-foreground line-clamp-2 hover:text-primary transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 rounded-md pr-12"
+            className="pointer-events-auto inline-flex max-w-full text-left text-xs sm:text-sm font-semibold leading-snug text-foreground line-clamp-3 sm:line-clamp-2 hover:text-primary transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 rounded-md pr-9 sm:pr-12"
           >
             {bookmark.title?.trim() || bookmark.url}
           </button>
+          
+          {/* 域名 */}
           <a
             href={bookmark.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="pointer-events-auto block text-xs text-muted-foreground/70 truncate hover:text-primary"
+            className="pointer-events-auto block text-[10px] sm:text-xs text-muted-foreground/70 truncate hover:text-primary"
             onClick={(e) => {
               if (batchMode) {
                 e.preventDefault()

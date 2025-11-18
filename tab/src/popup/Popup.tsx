@@ -90,10 +90,11 @@ export function Popup() {
   }, [config, viewMode]);
 
   const handleSave = async () => {
-    if (selectedTags.length === 0) {
-      setError('请至少选择一个标签');
-      return;
-    }
+    // 移除强制标签验证 - 允许保存无标签书签
+    // if (selectedTags.length === 0) {
+    //   setError('请至少选择一个标签');
+    //   return;
+    // }
 
     await saveBookmark();
   };

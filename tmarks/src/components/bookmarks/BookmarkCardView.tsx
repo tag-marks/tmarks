@@ -147,7 +147,8 @@ function BookmarkCard({
   onToggleSelect,
 }: BookmarkCardProps) {
   const [imageType, setImageType] = useState<ImageType>('unknown')
-  const [imageError, setImageError] = useState(false)
+  const [coverImageError, setCoverImageError] = useState(false)
+  const [faviconError, setFaviconError] = useState(false)
   const recordClick = useRecordClick()
 
   // 生成Google Favicon URL作为fallback
@@ -161,6 +162,11 @@ function BookmarkCard({
   }
 
   const fallbackFaviconUrl = getFaviconUrl(bookmark.url)
+  
+  // 决定显示什么图片
+  const hasCoverImage = bookmark.cover_image && bookmark.cover_image.trim() !== '' && !coverImageError
+  const shouldShowFallback = !hasCoverImage && fallbackFaviconUrl && !faviconError
+  const shouldShowImageArea = hasCoverImage || shouldShowFallback
 
   const handleVisit = () => {
     // 记录点击统计
@@ -235,62 +241,60 @@ function BookmarkCard({
         </button>
       )}
 
-      {/* 图片区域 - 根据图片类型自适应布局 */}
-      {((bookmark.cover_image && bookmark.cover_image.trim() !== '' && !imageError) || fallbackFaviconUrl) && (
+      {/* 图片区域 - 优先显示cover_image，失败则显示favicon，都在顶部居中 */}
+      {shouldShowImageArea && (
         <div
-          className={`relative bg-base-200 overflow-hidden flex-shrink-0 ${
-            imageType === 'favicon' || imageError
-              ? 'h-20 flex items-center justify-center'
-              : 'h-32'
+          className={`relative bg-base-200 overflow-hidden flex-shrink-0 flex items-center justify-center ${
+            imageType === 'favicon' || shouldShowFallback 
+              ? 'h-24 sm:h-20' 
+              : 'h-40 sm:h-32'
           }`}
           style={{ borderTopLeftRadius: 'calc(var(--radius) * 1.5)', borderTopRightRadius: 'calc(var(--radius) * 1.5)' }}
         >
-          {bookmark.cover_image && bookmark.cover_image.trim() !== '' && !imageError ? (
+          {hasCoverImage ? (
             <AdaptiveImage
-              src={bookmark.cover_image}
+              src={bookmark.cover_image!}
               alt={bookmark.title}
               className={
                 imageType === 'favicon'
-                  ? 'w-12 h-12 object-contain'
+                  ? 'w-14 h-14 sm:w-12 sm:h-12 object-contain'
                   : 'w-full h-full object-cover'
               }
               onTypeDetected={setImageType}
-              onError={() => setImageError(true)}
+              onError={() => setCoverImageError(true)}
             />
-          ) : fallbackFaviconUrl ? (
+          ) : shouldShowFallback ? (
             <img
               src={fallbackFaviconUrl}
               alt={bookmark.title}
-              className="w-12 h-12 object-contain"
-              onError={(e) => {
-                e.currentTarget.style.display = 'none'
-              }}
+              className="w-14 h-14 sm:w-12 sm:h-12 object-contain"
+              onError={() => setFaviconError(true)}
             />
           ) : null}
         </div>
       )}
 
       {/* 内容区 */}
-      <div className="flex flex-col p-3 gap-2 relative">
+      <div className="flex flex-col p-4 sm:p-3 gap-2.5 sm:gap-2 relative">
         {/* 状态标识 */}
         {(!!bookmark.is_pinned || !!bookmark.is_archived) && (
-          <div className="flex gap-1 mb-1">
+          <div className="flex gap-1.5 mb-1">
             {!!bookmark.is_pinned && (
-              <span className="bg-warning text-warning-content text-xs px-1.5 py-0.5 rounded-full font-medium">
+              <span className="bg-warning text-warning-content text-xs px-2 py-0.5 rounded-full font-medium">
                 置顶
               </span>
             )}
             {!!bookmark.is_archived && (
-              <span className="bg-base-content/40 text-base-100 text-xs px-1.5 py-0.5 rounded-full font-medium">
+              <span className="bg-base-content/40 text-base-100 text-xs px-2 py-0.5 rounded-full font-medium">
                 归档
               </span>
             )}
           </div>
         )}
 
-                {/* 标题 */}
+        {/* 标题 */}
         <h3
-          className="font-semibold text-sm line-clamp-2 hover:text-primary transition-colors leading-snug"
+          className="font-semibold text-base sm:text-sm line-clamp-2 hover:text-primary transition-colors leading-snug"
           title={bookmark.title}
         >
           {bookmark.title}
@@ -298,7 +302,7 @@ function BookmarkCard({
 
         {/* 描述 */}
         {bookmark.description && (
-          <p className="text-xs text-base-content/70 line-clamp-3 leading-relaxed">
+          <p className="text-sm sm:text-xs text-base-content/70 line-clamp-3 leading-relaxed">
             {bookmark.description}
           </p>
         )}
@@ -309,13 +313,13 @@ function BookmarkCard({
             {bookmark.tags.slice(0, 4).map((tag) => (
               <span
                 key={tag.id}
-                className="text-[11px] px-2 py-0.5 rounded-full bg-primary/10 text-primary"
+                className="text-xs sm:text-[11px] px-2.5 sm:px-2 py-1 sm:py-0.5 rounded-full bg-primary/10 text-primary"
               >
                 {tag.name}
               </span>
             ))}
             {bookmark.tags.length > 4 && (
-              <span className="text-[11px] text-base-content/60 flex items-center px-1">
+              <span className="text-xs sm:text-[11px] text-base-content/60 flex items-center px-1">
                 +{bookmark.tags.length - 4}
               </span>
             )}
