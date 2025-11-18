@@ -147,7 +147,20 @@ function BookmarkCard({
   onToggleSelect,
 }: BookmarkCardProps) {
   const [imageType, setImageType] = useState<ImageType>('unknown')
+  const [imageError, setImageError] = useState(false)
   const recordClick = useRecordClick()
+
+  // 生成Google Favicon URL作为fallback
+  const getFaviconUrl = (url: string): string => {
+    try {
+      const urlObj = new URL(url)
+      return `https://www.google.com/s2/favicons?domain=${urlObj.hostname}&sz=64`
+    } catch {
+      return ''
+    }
+  }
+
+  const fallbackFaviconUrl = getFaviconUrl(bookmark.url)
 
   const handleVisit = () => {
     // 记录点击统计
@@ -223,25 +236,37 @@ function BookmarkCard({
       )}
 
       {/* 图片区域 - 根据图片类型自适应布局 */}
-      {bookmark.cover_image && bookmark.cover_image.trim() !== '' && (
+      {((bookmark.cover_image && bookmark.cover_image.trim() !== '' && !imageError) || fallbackFaviconUrl) && (
         <div
           className={`relative bg-base-200 overflow-hidden flex-shrink-0 ${
-            imageType === 'favicon'
+            imageType === 'favicon' || imageError
               ? 'h-20 flex items-center justify-center'
               : 'h-32'
           }`}
           style={{ borderTopLeftRadius: 'calc(var(--radius) * 1.5)', borderTopRightRadius: 'calc(var(--radius) * 1.5)' }}
         >
-          <AdaptiveImage
-            src={bookmark.cover_image}
-            alt={bookmark.title}
-            className={
-              imageType === 'favicon'
-                ? 'w-12 h-12 object-contain'
-                : 'w-full h-full object-cover'
-            }
-            onTypeDetected={setImageType}
-          />
+          {bookmark.cover_image && bookmark.cover_image.trim() !== '' && !imageError ? (
+            <AdaptiveImage
+              src={bookmark.cover_image}
+              alt={bookmark.title}
+              className={
+                imageType === 'favicon'
+                  ? 'w-12 h-12 object-contain'
+                  : 'w-full h-full object-cover'
+              }
+              onTypeDetected={setImageType}
+              onError={() => setImageError(true)}
+            />
+          ) : fallbackFaviconUrl ? (
+            <img
+              src={fallbackFaviconUrl}
+              alt={bookmark.title}
+              className="w-12 h-12 object-contain"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none'
+              }}
+            />
+          ) : null}
         </div>
       )}
 

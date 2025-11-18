@@ -110,6 +110,18 @@ const BookmarkListItem = memo(function BookmarkListItem({
 }: BookmarkListItemProps) {
   const recordClick = useRecordClick()
 
+  // 生成Google Favicon URL作为fallback
+  const getFaviconUrl = (url: string): string => {
+    try {
+      const urlObj = new URL(url)
+      return `https://www.google.com/s2/favicons?domain=${urlObj.hostname}&sz=64`
+    } catch {
+      return ''
+    }
+  }
+
+  const fallbackFaviconUrl = getFaviconUrl(bookmark.url)
+
   const handleVisit = () => {
     // 记录点击统计
     if (!readOnly) {
@@ -167,15 +179,21 @@ const BookmarkListItem = memo(function BookmarkListItem({
 
       <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
 
-        {/* 封面图 */}
-        {bookmark.cover_image && (
-          <div className="flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-lg overflow-hidden bg-base-200">
+        {/* 封面图 - 优先显示cover_image，失败则显示favicon */}
+        {(bookmark.cover_image || fallbackFaviconUrl) && (
+          <div className="flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-lg overflow-hidden bg-base-200 flex items-center justify-center">
             <img
-              src={bookmark.cover_image}
+              src={bookmark.cover_image || fallbackFaviconUrl}
               alt={bookmark.title}
-              className="w-full h-full object-cover"
+              className={bookmark.cover_image ? "w-full h-full object-cover" : "w-12 h-12 object-contain"}
               onError={(e) => {
-                e.currentTarget.style.display = 'none'
+                // 如果cover_image失败且有fallback，切换到fallback
+                if (bookmark.cover_image && fallbackFaviconUrl) {
+                  e.currentTarget.src = fallbackFaviconUrl
+                  e.currentTarget.className = "w-12 h-12 object-contain"
+                } else {
+                  e.currentTarget.style.display = 'none'
+                }
               }}
             />
           </div>
