@@ -161,7 +161,7 @@ const BookmarkListItem = memo(function BookmarkListItem({
   }
 
   return (
-    <div className={`card hover:shadow-lg transition-all relative group touch-manipulation ${
+    <div className={`card hover:shadow-lg transition-all relative group touch-manipulation !p-3 sm:!p-6 ${
       batchMode && isSelected ? 'ring-2 ring-primary' : ''
     }`}>
       {/* 批量选择复选框 */}
@@ -277,11 +277,11 @@ const BookmarkListItem = memo(function BookmarkListItem({
 
         {/* 第三行：标签（占据整个宽度，智能换行） */}
         {bookmark.tags && bookmark.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1 sm:gap-1.5 -mx-1">
+          <div className="flex flex-wrap gap-1.5">
             {bookmark.tags.map((tag) => (
               <span
                 key={tag.id}
-                className="text-[11px] sm:text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary whitespace-nowrap"
+                className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full bg-primary/10 text-primary whitespace-nowrap"
               >
                 {tag.name}
               </span>
