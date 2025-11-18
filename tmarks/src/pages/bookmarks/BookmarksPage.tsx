@@ -560,8 +560,8 @@ export function BookmarksPage() {
     <>
       {visibilityMenuPortal}
       {viewMenuPortal}
-      <div className="w-full mx-auto py-3 sm:py-4 md:py-6 px-3 sm:px-4 md:px-6">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 md:gap-6">
+      <div className="w-full max-w-full mx-auto py-3 sm:py-4 md:py-6 px-3 sm:px-4 md:px-6 overflow-x-hidden">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 md:gap-6 max-w-full">
           {/* 左侧：标签侧边栏 - 桌面端显示 */}
           <aside className="hidden lg:block lg:col-span-3 order-2 lg:order-1 fixed top-[calc(5rem+0.75rem)] sm:top-[calc(5rem+1rem)] md:top-[calc(5rem+1.5rem)] left-3 sm:left-4 md:left-6 bottom-3 w-[calc(25%-1.5rem)] z-40 flex flex-col overflow-hidden">
             <TagSidebar
@@ -612,7 +612,7 @@ export function BookmarksPage() {
                   </div>
 
                   {/* 排序选择、视图切换和新增按钮 */}
-                  <div className="flex items-center gap-1.5 sm:gap-2 w-full sm:w-auto overflow-x-auto scrollbar-hide">
+                  <div className="flex items-center gap-1.5 sm:gap-2 w-full sm:w-auto overflow-x-auto scrollbar-hide pb-1 -mx-1 px-1">
                     <div className="relative flex-shrink-0">
                       <SortSelector
                         value={sortBy}
