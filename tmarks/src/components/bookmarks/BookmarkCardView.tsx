@@ -23,6 +23,16 @@ export function BookmarkCardView({
 }: BookmarkCardViewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [columns, setColumns] = useState(1)
+  const [showEditHint, setShowEditHint] = useState(true)
+
+  // 10秒后隐藏编辑按钮提示
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowEditHint(false)
+    }, 10000)
+
+    return () => clearTimeout(timer)
+  }, [])
 
   // 动态计算列数
   useEffect(() => {
@@ -118,6 +128,7 @@ export function BookmarkCardView({
                     batchMode={batchMode}
                     isSelected={selectedIds.includes(bookmark.id)}
                     onToggleSelect={onToggleSelect}
+                    showEditHint={showEditHint}
                   />
                 </div>
               ))}
@@ -136,6 +147,7 @@ interface BookmarkCardProps {
   batchMode?: boolean
   isSelected?: boolean
   onToggleSelect?: (id: string) => void
+  showEditHint?: boolean
 }
 
 function BookmarkCard({
@@ -145,6 +157,7 @@ function BookmarkCard({
   batchMode = false,
   isSelected = false,
   onToggleSelect,
+  showEditHint = false,
 }: BookmarkCardProps) {
   const [imageType, setImageType] = useState<ImageType>('unknown')
   const [coverImageError, setCoverImageError] = useState(false)
@@ -225,14 +238,16 @@ function BookmarkCard({
         </div>
       )}
 
-      {/* 编辑按钮 - 低调显示 */}
+      {/* 编辑按钮 - 初始显示10秒后隐藏 */}
       {!!onEdit && !readOnly && !batchMode && (
         <button
           onClick={(event) => {
             event.stopPropagation()
             onEdit()
           }}
-          className="absolute top-2 right-2 sm:top-3 sm:right-3 w-8 h-8 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:scale-110 z-10 touch-manipulation active:opacity-100"
+          className={`absolute top-2 right-2 sm:top-3 sm:right-3 w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:scale-110 z-10 touch-manipulation ${
+            showEditHint ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 active:opacity-100'
+          }`}
           title="编辑"
         >
           <svg className="w-4 h-4 text-base-content drop-shadow-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>

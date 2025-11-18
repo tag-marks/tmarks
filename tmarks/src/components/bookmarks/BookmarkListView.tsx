@@ -1,4 +1,4 @@
-import { useRef, memo, useState } from 'react'
+import { useRef, memo, useState, useEffect } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import type { Bookmark } from '@/lib/types'
 import { useRecordClick } from '@/hooks/useBookmarks'
@@ -21,6 +21,16 @@ export function BookmarkListView({
   onToggleSelect,
 }: BookmarkListViewProps) {
   const parentRef = useRef<HTMLDivElement>(null)
+  const [showEditHint, setShowEditHint] = useState(true)
+
+  // 10秒后隐藏编辑按钮提示
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowEditHint(false)
+    }, 10000)
+
+    return () => clearTimeout(timer)
+  }, [])
 
   // 只有超过 200 个书签时才启用虚拟滚动
   const enableVirtualization = bookmarks.length > 200
@@ -68,6 +78,7 @@ export function BookmarkListView({
                   batchMode={batchMode}
                   isSelected={selectedIds.includes(bookmark.id)}
                   onToggleSelect={onToggleSelect}
+                  showEditHint={showEditHint}
                 />
               </div>
             )
@@ -85,6 +96,7 @@ export function BookmarkListView({
             batchMode={batchMode}
             isSelected={selectedIds.includes(bookmark.id)}
             onToggleSelect={onToggleSelect}
+            showEditHint={showEditHint}
           />
         ))}
     </div>
@@ -98,6 +110,7 @@ interface BookmarkListItemProps {
   batchMode?: boolean
   isSelected?: boolean
   onToggleSelect?: (id: string) => void
+  showEditHint?: boolean
 }
 
 const BookmarkListItem = memo(function BookmarkListItem({
@@ -107,6 +120,7 @@ const BookmarkListItem = memo(function BookmarkListItem({
   batchMode = false,
   isSelected = false,
   onToggleSelect,
+  showEditHint = false,
 }: BookmarkListItemProps) {
   const [coverImageError, setCoverImageError] = useState(false)
   const [faviconError, setFaviconError] = useState(false)
@@ -167,7 +181,7 @@ const BookmarkListItem = memo(function BookmarkListItem({
         </div>
       )}
 
-      {/* 编辑按钮 - 低调显示 */}
+      {/* 编辑按钮 - 初始显示10秒后隐藏 */}
       {!!onEdit && !readOnly && !batchMode && (
         <button
           onClick={(event) => {
@@ -175,7 +189,9 @@ const BookmarkListItem = memo(function BookmarkListItem({
             event.stopPropagation()
             onEdit()
           }}
-          className="absolute top-2 right-2 sm:top-3 sm:right-3 w-8 h-8 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:scale-110 z-10 touch-manipulation active:opacity-100"
+          className={`absolute top-2 right-2 sm:top-3 sm:right-3 w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:scale-110 z-10 touch-manipulation ${
+            showEditHint ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 active:opacity-100'
+          }`}
           title="编辑"
         >
           <svg className="w-4 h-4 text-base-content drop-shadow-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
