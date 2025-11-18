@@ -54,7 +54,7 @@ export function BookmarkListView({
   return (
     <div
       ref={parentRef}
-      className="grid grid-cols-2 sm:grid-cols-1 gap-2 sm:gap-3 scrollbar-hide"
+      className="space-y-3 sm:space-y-4 scrollbar-hide"
       style={enableVirtualization ? { height: '600px', overflow: 'auto' } : undefined}
     >
       {enableVirtualization && (
@@ -208,12 +208,11 @@ const BookmarkListItem = memo(function BookmarkListItem({
         </button>
       )}
 
-      {/* 移动端：横向紧凑布局，桌面端：传统列表布局 */}
-      <div className="flex flex-row gap-2 sm:gap-4">
+      <div className="flex flex-row sm:flex-row gap-3 sm:gap-4">
 
-        {/* 封面图 - 移动端小图标，桌面端大图 */}
+        {/* 封面图 */}
         {shouldShowImage && (
-          <div className="flex-shrink-0 w-12 h-12 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-md sm:rounded-lg overflow-hidden bg-base-200 flex items-center justify-center">
+          <div className="flex-shrink-0 w-20 h-20 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-lg overflow-hidden bg-base-200 flex items-center justify-center">
             {hasCoverImage ? (
               <img
                 src={bookmark.cover_image!}
@@ -225,87 +224,87 @@ const BookmarkListItem = memo(function BookmarkListItem({
               <img
                 src={fallbackFaviconUrl}
                 alt={bookmark.title}
-                className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 object-contain"
+                className="w-10 h-10 sm:w-10 sm:h-10 md:w-12 md:h-12 object-contain"
                 onError={() => setFaviconError(true)}
               />
             ) : null}
           </div>
         )}
 
-        {/* 内容区域 */}
-        <div className="flex-1 min-w-0 flex flex-col justify-center">
-          {/* 标题 - 移动端2行，桌面端1行 */}
-          <button
-            onClick={handleVisit}
-            className="font-semibold text-xs sm:text-base hover:text-primary transition-colors text-left mb-0.5 sm:mb-1"
-            style={{
-              display: '-webkit-box',
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              wordBreak: 'break-word',
-              lineHeight: '1.3'
-            }}
-            title={bookmark.title}
-          >
-            {bookmark.title}
-          </button>
-
-          {/* 状态标签 - 移动端和桌面端都显示 */}
-          {(!!bookmark.is_pinned || !!bookmark.is_archived) && (
-            <div className="flex gap-1 mb-1 sm:mb-2">
-              {!!bookmark.is_pinned && (
-                <span className="bg-warning text-warning-content text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full font-medium" title="已置顶">
-                  置顶
-                </span>
-              )}
-              {!!bookmark.is_archived && (
-                <span className="bg-base-content/40 text-card text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full font-medium" title="已归档">
-                  归档
-                </span>
-              )}
-            </div>
-          )}
-
-          {/* URL - 移动端隐藏，桌面端显示 */}
-          <a
-            href={bookmark.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hidden sm:block text-xs text-primary hover:underline mb-2"
-            style={{
-              display: '-webkit-box',
-              WebkitLineClamp: 1,
-              WebkitBoxOrient: 'vertical',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              wordBreak: 'break-all'
-            }}
-          >
-            {bookmark.url}
-          </a>
-
-          {/* 描述 - 移动端隐藏，桌面端显示 */}
-          {bookmark.description && (
-            <p className="hidden sm:block text-sm text-base-content/70 line-clamp-2 mb-2">
-              {bookmark.description}
-            </p>
-          )}
-
-          {/* 标签 - 移动端隐藏，桌面端显示 */}
-          {bookmark.tags && bookmark.tags.length > 0 && (
-            <div className="hidden sm:flex flex-wrap gap-1.5">
-              {bookmark.tags.map((tag) => (
-                <span
-                  key={tag.id}
-                  className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary"
+        {/* 内容 */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1 min-w-0">
+              {/* 标题 */}
+              <h3 className="font-semibold text-base mb-1 flex items-center gap-2">
+                <button
+                  onClick={handleVisit}
+                  className="hover:text-primary transition-colors text-left"
+                  style={{
+                    display: '-webkit-box',
+                    WebkitLineClamp: 1,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    wordBreak: 'break-word'
+                  }}
+                  title={bookmark.title}
                 >
-                  {tag.name}
-                </span>
-              ))}
+                  {bookmark.title}
+                </button>
+                {!!bookmark.is_pinned && (
+                  <span className="bg-warning text-warning-content text-xs px-2 py-0.5 rounded-full font-medium" title="已置顶">
+                    置顶
+                  </span>
+                )}
+                {!!bookmark.is_archived && (
+                  <span className="bg-base-content/40 text-card text-xs px-2 py-0.5 rounded-full font-medium" title="已归档">
+                    归档
+                  </span>
+                )}
+              </h3>
+
+              {/* URL */}
+              <a
+                href={bookmark.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-primary hover:underline block mb-2"
+                style={{
+                  display: '-webkit-box',
+                  WebkitLineClamp: 1,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  wordBreak: 'break-all'
+                }}
+              >
+                {bookmark.url}
+              </a>
+
+              {/* 描述 */}
+              {bookmark.description && (
+                <p className="text-sm text-base-content/70 line-clamp-2 mb-2">
+                  {bookmark.description}
+                </p>
+              )}
+
+              {/* 标签 */}
+              {bookmark.tags && bookmark.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {bookmark.tags.map((tag) => (
+                    <span
+                      key={tag.id}
+                      className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary"
+                    >
+                      {tag.name}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
-          )}
+
+            </div>
         </div>
       </div>
     </div>
