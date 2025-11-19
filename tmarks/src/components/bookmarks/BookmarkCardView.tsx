@@ -49,37 +49,35 @@ export function BookmarkCardView({
 
   return (
     <div ref={containerRef} className="w-full">
-      {/* 瀑布流布局 - 使用CSS columns */}
-      {sortedBookmarks.length > 0 && (
-        <div
-          className="w-full"
-          style={{
-            columnCount: 'auto',
-            columnWidth: '280px',
-            columnGap: '1rem'
-          } as React.CSSProperties}
-        >
-          {sortedBookmarks.map((bookmark) => (
-            <div 
-              key={bookmark.id}
-              style={{
-                breakInside: 'avoid',
-                marginBottom: '1rem'
-              }}
-            >
-              <BookmarkCard
-                bookmark={bookmark}
-                onEdit={onEdit ? () => onEdit(bookmark) : undefined}
-                readOnly={readOnly}
-                batchMode={batchMode}
-                isSelected={selectedIds.includes(bookmark.id)}
-                onToggleSelect={onToggleSelect}
-                showEditHint={showEditHint}
-              />
-            </div>
-          ))}
-        </div>
-      )}
+      {/* 统一瀑布流布局 - 置顶和非置顶书签在同一个容器 */}
+      <div
+        className="w-full"
+        style={{
+          columnCount: 'auto',
+          columnWidth: '280px',
+          columnGap: '1rem'
+        } as React.CSSProperties}
+      >
+        {sortedBookmarks.map((bookmark) => (
+          <div 
+            key={bookmark.id}
+            style={{
+              breakInside: 'avoid',
+              marginBottom: '1rem'
+            }}
+          >
+            <BookmarkCard
+              bookmark={bookmark}
+              onEdit={onEdit ? () => onEdit(bookmark) : undefined}
+              readOnly={readOnly}
+              batchMode={batchMode}
+              isSelected={selectedIds.includes(bookmark.id)}
+              onToggleSelect={onToggleSelect}
+              showEditHint={showEditHint}
+            />
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

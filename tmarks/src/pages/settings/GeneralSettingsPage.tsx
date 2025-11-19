@@ -97,7 +97,7 @@ export function GeneralSettingsPage() {
                 type="checkbox"
                 checked={enableSearchAutoClear}
                 onChange={(e) => setEnableSearchAutoClear(e.target.checked)}
-                className="checkbox"
+                className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
               />
               <span className="text-sm text-foreground">启用搜索框自动清空</span>
             </label>
@@ -116,8 +116,7 @@ export function GeneralSettingsPage() {
                   step="5"
                   value={searchAutoClearSeconds}
                   onChange={(e) => setSearchAutoClearSeconds(Number(e.target.value))}
-                  className="flex-1 h-2 rounded-lg appearance-none cursor-pointer"
-                  style={{ background: 'var(--muted)' }}
+                  className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                 />
                 <input
                   type="number"
@@ -153,7 +152,7 @@ export function GeneralSettingsPage() {
                 type="checkbox"
                 checked={enableTagSelectionAutoClear}
                 onChange={(e) => setEnableTagSelectionAutoClear(e.target.checked)}
-                className="checkbox"
+                className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
               />
               <span className="text-sm text-foreground">启用标签选中自动清空</span>
             </label>
@@ -172,8 +171,7 @@ export function GeneralSettingsPage() {
                   step="10"
                   value={tagSelectionAutoClearSeconds}
                   onChange={(e) => setTagSelectionAutoClearSeconds(Number(e.target.value))}
-                  className="flex-1 h-2 rounded-lg appearance-none cursor-pointer"
-                  style={{ background: 'var(--muted)' }}
+                  className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                 />
                 <input
                   type="number"
@@ -195,14 +193,11 @@ export function GeneralSettingsPage() {
         <div className="border-t border-border"></div>
 
         {/* 说明信息 */}
-        <div className="rounded-lg p-4 border" style={{ 
-          background: 'oklch(from var(--primary) l c h / 0.1)',
-          borderColor: 'oklch(from var(--primary) l c h / 0.2)'
-        }}>
-          <h4 className="text-sm font-semibold mb-2" style={{ color: 'var(--foreground)' }}>
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+          <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">
             💡 使用提示
           </h4>
-          <ul className="text-xs space-y-1" style={{ color: 'var(--muted-foreground)' }}>
+          <ul className="text-xs text-blue-800 dark:text-blue-200 space-y-1">
             <li>• 搜索框自动清空可以帮助你快速回到全部内容视图</li>
             <li>• 标签选中自动清空可以避免长时间保持筛选状态</li>
             <li>• 你可以根据使用习惯调整自动清空的时间</li>
