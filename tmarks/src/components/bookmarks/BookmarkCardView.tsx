@@ -49,23 +49,18 @@ export function BookmarkCardView({
 
   return (
     <div ref={containerRef} className="w-full">
-      {/* 统一瀑布流布局 - 置顶和非置顶书签在同一个容器 */}
+      {/* 统一瀑布流布局 - 使用 Grid 实现按行排列 */}
       <div
         className="w-full"
         style={{
-          columnCount: 'auto',
-          columnWidth: '280px',
-          columnGap: '1rem'
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+          gap: '1rem',
+          gridAutoFlow: 'row dense'
         } as React.CSSProperties}
       >
         {sortedBookmarks.map((bookmark) => (
-          <div 
-            key={bookmark.id}
-            style={{
-              breakInside: 'avoid',
-              marginBottom: '1rem'
-            }}
-          >
+          <div key={bookmark.id}>
             <BookmarkCard
               bookmark={bookmark}
               onEdit={onEdit ? () => onEdit(bookmark) : undefined}
