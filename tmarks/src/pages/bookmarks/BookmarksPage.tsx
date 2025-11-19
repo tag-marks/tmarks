@@ -568,8 +568,8 @@ export function BookmarksPage() {
     <>
       {visibilityMenuPortal}
       {viewMenuPortal}
-      <div className="w-full max-w-full mx-auto py-3 sm:py-4 md:py-6 px-3 sm:px-4 md:px-6 overflow-x-hidden">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 md:gap-6 max-w-full">
+      <div className="w-full max-w-full mx-auto h-[calc(100vh-5rem)] sm:h-[calc(100vh-5rem)] flex flex-col overflow-hidden">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 md:gap-6 max-w-full h-full">
           {/* 左侧：标签侧边栏 - 桌面端显示 */}
           <aside className="hidden lg:block lg:col-span-3 order-2 lg:order-1 fixed top-[calc(5rem+0.75rem)] sm:top-[calc(5rem+1rem)] md:top-[calc(5rem+1.5rem)] left-3 sm:left-4 md:left-6 bottom-3 w-[calc(25%-1.5rem)] z-40 flex flex-col overflow-hidden">
             <TagSidebar
@@ -583,8 +583,9 @@ export function BookmarksPage() {
           </aside>
 
           {/* 右侧：书签列表 */}
-          <main className="lg:col-span-9 lg:col-start-4 order-1 lg:order-2">
-            <div className="space-y-3 sm:space-y-4 md:space-y-5">
+          <main className="lg:col-span-9 lg:col-start-4 order-1 lg:order-2 flex flex-col h-full overflow-hidden">
+            {/* 固定的顶部操作栏 */}
+            <div className="flex-shrink-0 px-3 sm:px-4 md:px-6 pt-3 sm:pt-4 md:pt-6 pb-3 sm:pb-4">
               {/* 顶部操作栏 */}
               <div className="card shadow-float">
                 <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
@@ -699,7 +700,7 @@ export function BookmarksPage() {
 
               {/* 批量操作提示栏 */}
               {batchMode && (
-                <div className="card bg-primary/10 border border-primary/20 mb-4">
+                <div className="card bg-primary/10 border border-primary/20 mt-3 sm:mt-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       <span className="text-sm font-medium text-foreground">
@@ -733,29 +734,34 @@ export function BookmarksPage() {
                   </div>
                 </div>
               )}
+            </div>
 
-              {/* 书签列表 */}
-              <BookmarkListContainer
-                bookmarks={filteredBookmarks}
-                isLoading={isInitialLoading || isFetchingExisting}
-                viewMode={viewMode}
-                onEdit={handleOpenForm}
-                previousCount={previousCountRef.current}
-                batchMode={batchMode}
-                selectedIds={selectedIds}
-                onToggleSelect={handleToggleSelect}
-              />
-
-              {/* 分页控制 */}
-              {!isInitialLoading && filteredBookmarks.length > 0 && (
-                <PaginationFooter
-                  hasMore={hasMore}
-                  isLoading={bookmarksQuery.isFetchingNextPage}
-                  onLoadMore={handleLoadMore}
-                  currentCount={filteredBookmarks.length}
-                  totalLoaded={filteredBookmarks.length}
+            {/* 可滚动的书签列表区域 */}
+            <div className="flex-1 overflow-y-auto px-3 sm:px-4 md:px-6 pb-3 sm:pb-4 md:pb-6">
+              <div className="space-y-3 sm:space-y-4 md:space-y-5">
+                {/* 书签列表 */}
+                <BookmarkListContainer
+                  bookmarks={filteredBookmarks}
+                  isLoading={isInitialLoading || isFetchingExisting}
+                  viewMode={viewMode}
+                  onEdit={handleOpenForm}
+                  previousCount={previousCountRef.current}
+                  batchMode={batchMode}
+                  selectedIds={selectedIds}
+                  onToggleSelect={handleToggleSelect}
                 />
-              )}
+
+                {/* 分页控制 */}
+                {!isInitialLoading && filteredBookmarks.length > 0 && (
+                  <PaginationFooter
+                    hasMore={hasMore}
+                    isLoading={bookmarksQuery.isFetchingNextPage}
+                    onLoadMore={handleLoadMore}
+                    currentCount={filteredBookmarks.length}
+                    totalLoaded={filteredBookmarks.length}
+                  />
+                )}
+              </div>
             </div>
           </main>
         </div>
