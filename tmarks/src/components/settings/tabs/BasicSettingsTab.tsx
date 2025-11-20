@@ -145,6 +145,60 @@ export function BasicSettingsTab({ preferences, onUpdate }: BasicSettingsTabProp
                     当前设置：每页显示 {preferences.page_size} 条书签
                 </p>
             </div>
+
+            <div className="border-t border-border"></div>
+
+            {/* 默认排序方式 */}
+            <div className="space-y-4">
+                <div>
+                    <h3 className="text-lg font-semibold text-foreground">默认排序方式</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                        选择书签列表的默认排序规则
+                    </p>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {[
+                        { value: 'created', label: '创建时间', desc: '最新创建' },
+                        { value: 'updated', label: '更新时间', desc: '最近修改' },
+                        { value: 'pinned', label: '置顶优先', desc: '置顶在前' },
+                        { value: 'popular', label: '热门优先', desc: '点击最多' },
+                    ].map((sort) => (
+                        <button
+                            key={sort.value}
+                            onClick={() => onUpdate({ sort_by: sort.value as any })}
+                            className={`p-3 rounded-lg border-2 transition-all ${preferences.sort_by === sort.value
+                                ? 'border-primary bg-primary/5'
+                                : 'border-border hover:border-primary/50'
+                                }`}
+                        >
+                            <div className="text-sm font-medium mb-1">{sort.label}</div>
+                            <div className="text-xs text-muted-foreground">{sort.desc}</div>
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            <div className="border-t border-border"></div>
+
+            {/* 提示信息 */}
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <div className="flex items-start gap-2">
+                    <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div>
+                        <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">
+                            基础设置说明
+                        </h4>
+                        <ul className="text-xs text-blue-800 dark:text-blue-200 space-y-1">
+                            <li>• 主题设置会立即生效，无需保存</li>
+                            <li>• 视图模式可以在书签页面随时切换</li>
+                            <li>• 显示密度影响所有列表和卡片的间距</li>
+                            <li>• 每页显示数量越大，加载时间可能越长</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
         </div>
     )
 }
