@@ -1,46 +1,50 @@
 import { useState, useEffect } from 'react'
-import { Save, RotateCcw } from 'lucide-react'
+import { Save, RotateCcw, Settings, Zap, Palette } from 'lucide-react'
 import { usePreferences, useUpdatePreferences } from '@/hooks/usePreferences'
 import { useToastStore } from '@/stores/toastStore'
-import type { DefaultBookmarkIcon } from '@/lib/types'
-import { SearchAutoClearSettings } from '@/components/settings/SearchAutoClearSettings'
-import { TagSelectionAutoClearSettings } from '@/components/settings/TagSelectionAutoClearSettings'
-import { DefaultBookmarkIconSettings } from '@/components/settings/DefaultBookmarkIconSettings'
-import { SettingsTips } from '@/components/settings/SettingsTips'
+import type { UserPreferences } from '@/lib/types'
+import { SettingsTabs } from '@/components/settings/SettingsTabs'
+import { BasicSettingsTab } from '@/components/settings/tabs/BasicSettingsTab'
+import { AutomationSettingsTab } from '@/components/settings/tabs/AutomationSettingsTab'
+import { AppearanceSettingsTab } from '@/components/settings/tabs/AppearanceSettingsTab'
 
 export function GeneralSettingsPage() {
   const { data: preferences, isLoading } = usePreferences()
   const updatePreferences = useUpdatePreferences()
   const { addToast } = useToastStore()
 
-  // 1. 搜索和筛选相关
-  const [searchAutoClearSeconds, setSearchAutoClearSeconds] = useState(15)
-  const [tagSelectionAutoClearSeconds, setTagSelectionAutoClearSeconds] = useState(30)
-  const [enableSearchAutoClear, setEnableSearchAutoClear] = useState(true)
-  const [enableTagSelectionAutoClear, setEnableTagSelectionAutoClear] = useState(false)
-  
-  // 2. 默认书签图标
-  const [defaultBookmarkIcon, setDefaultBookmarkIcon] = useState<DefaultBookmarkIcon>('bookmark')
+  const [activeTab, setActiveTab] = useState('basic')
+  const [localPreferences, setLocalPreferences] = useState<UserPreferences | null>(null)
 
   // 从服务器加载设置
   useEffect(() => {
     if (preferences) {
-      setSearchAutoClearSeconds(preferences.search_auto_clear_seconds || 15)
-      setTagSelectionAutoClearSeconds(preferences.tag_selection_auto_clear_seconds || 30)
-      setEnableSearchAutoClear(preferences.enable_search_auto_clear ?? true)
-      setEnableTagSelectionAutoClear(preferences.enable_tag_selection_auto_clear ?? false)
-      setDefaultBookmarkIcon(preferences.default_bookmark_icon || 'bookmark')
+      setLocalPreferences(preferences)
     }
   }, [preferences])
 
+  const handleUpdate = (updates: Partial<UserPreferences>) => {
+    if (localPreferences) {
+      setLocalPreferences({ ...localPreferences, ...updates })
+    }
+  }
+
   const handleSave = async () => {
+    if (!localPreferences) return
+    
     try {
       await updatePreferences.mutateAsync({
-        search_auto_clear_seconds: searchAutoClearSeconds,
-        tag_selection_auto_clear_seconds: tagSelectionAutoClearSeconds,
-        enable_search_auto_clear: enableSearchAutoClear,
-        enable_tag_selection_auto_clear: enableTagSelectionAutoClear,
-        default_bookmark_icon: defaultBookmarkIcon,
+        theme: localPreferences.theme,
+        page_size: localPreferences.page_size,
+        view_mode: localPreferences.view_mode,
+        density: localPreferences.density,
+        tag_layout: localPreferences.tag_layout,
+        sort_by: localPreferences.sort_by,
+        search_auto_clear_seconds: localPreferences.search_auto_clear_seconds,
+        tag_selection_auto_clear_seconds: localPreferences.tag_selection_auto_clear_seconds,
+        enable_search_auto_clear: localPreferences.enable_search_auto_clear,
+        enable_tag_selection_auto_clear: localPreferences.enable_tag_selection_auto_clear,
+        default_bookmark_icon: localPreferences.default_bookmark_icon,
       })
       addToast('success', '设置已保存')
     } catch {
@@ -49,14 +53,13 @@ export function GeneralSettingsPage() {
   }
 
   const handleReset = () => {
-    setSearchAutoClearSeconds(15)
-    setTagSelectionAutoClearSeconds(30)
-    setEnableSearchAutoClear(true)
-    setEnableTagSelectionAutoClear(false)
-    setDefaultBookmarkIcon('bookmark')
+    if (preferences) {
+      setLocalPreferences(preferences)
+      addToast('info', '已重置为上次保存的设置')
+    }
   }
 
-  if (isLoading) {
+  if (isLoading || !localPreferences) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -64,9 +67,16 @@ export function GeneralSettingsPage() {
     )
   }
 
+  const tabs = [
+    { id: 'basic', label: '基础设置', icon: <Settings className="w-4 h-4" /> },
+    { id: 'automation', label: '自动化', icon: <Zap className="w-4 h-4" /> },
+    { id: 'appearance', label: '外观定制', icon: <Palette className="w-4 h-4" /> },
+  ]
+
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="max-w-5xl mx-auto p-6 space-y-6">
+      {/* 页面标题和操作按钮 */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">通用设置</h1>
           <p className="text-sm text-muted-foreground mt-1">
@@ -79,7 +89,7 @@ export function GeneralSettingsPage() {
             className="btn btn-secondary flex items-center gap-2"
           >
             <RotateCcw className="w-4 h-4" />
-            重置
+            <span className="hidden sm:inline">重置</span>
           </button>
           <button
             onClick={handleSave}
@@ -92,40 +102,38 @@ export function GeneralSettingsPage() {
         </div>
       </div>
 
-      <div className="card p-6 space-y-6">
-        <SearchAutoClearSettings
-          enabled={enableSearchAutoClear}
-          seconds={searchAutoClearSeconds}
-          onEnabledChange={setEnableSearchAutoClear}
-          onSecondsChange={setSearchAutoClearSeconds}
-        />
+      {/* 标签页容器 */}
+      <div className="card p-6">
+        <SettingsTabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab}>
+          {activeTab === 'basic' && (
+            <BasicSettingsTab
+              preferences={localPreferences}
+              onUpdate={handleUpdate}
+            />
+          )}
 
-        <div className="border-t border-border"></div>
+          {activeTab === 'automation' && (
+            <AutomationSettingsTab
+              searchEnabled={localPreferences.enable_search_auto_clear}
+              searchSeconds={localPreferences.search_auto_clear_seconds}
+              tagEnabled={localPreferences.enable_tag_selection_auto_clear}
+              tagSeconds={localPreferences.tag_selection_auto_clear_seconds}
+              onSearchEnabledChange={(enabled) => handleUpdate({ enable_search_auto_clear: enabled })}
+              onSearchSecondsChange={(seconds) => handleUpdate({ search_auto_clear_seconds: seconds })}
+              onTagEnabledChange={(enabled) => handleUpdate({ enable_tag_selection_auto_clear: enabled })}
+              onTagSecondsChange={(seconds) => handleUpdate({ tag_selection_auto_clear_seconds: seconds })}
+            />
+          )}
 
-        <TagSelectionAutoClearSettings
-          enabled={enableTagSelectionAutoClear}
-          seconds={tagSelectionAutoClearSeconds}
-          onEnabledChange={setEnableTagSelectionAutoClear}
-          onSecondsChange={setTagSelectionAutoClearSeconds}
-        />
-
-        <div className="border-t border-border"></div>
-
-        <DefaultBookmarkIconSettings
-          selectedIcon={defaultBookmarkIcon}
-          onIconChange={setDefaultBookmarkIcon}
-        />
-
-        <div className="border-t border-border"></div>
-
-        <SettingsTips
-          tips={[
-            '搜索框自动清空可以帮助你快速回到全部内容视图',
-            '标签选中自动清空可以避免长时间保持筛选状态',
-            '你可以根据使用习惯调整自动清空的时间',
-            '默认书签图标会在书签没有图片时显示',
-          ]}
-        />
+          {activeTab === 'appearance' && (
+            <AppearanceSettingsTab
+              defaultIcon={localPreferences.default_bookmark_icon}
+              tagLayout={localPreferences.tag_layout}
+              onIconChange={(icon) => handleUpdate({ default_bookmark_icon: icon })}
+              onTagLayoutChange={(layout) => handleUpdate({ tag_layout: layout })}
+            />
+          )}
+        </SettingsTabs>
       </div>
     </div>
   )
