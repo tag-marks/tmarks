@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { Share2, Copy, RefreshCw } from 'lucide-react'
 import { useShareSettings, useUpdateShareSettings } from '@/hooks/useShare'
 import { useToastStore } from '@/stores/toastStore'
+import { InfoBox } from '../InfoBox'
 
 export function ShareSettingsTab() {
   const { data, isLoading } = useShareSettings()
@@ -112,7 +113,7 @@ export function ShareSettingsTab() {
               onChange={(e) => setEnabled(e.target.checked)}
               className="sr-only peer"
             />
-            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+            <div className="w-11 h-6 bg-muted peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-background after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-background after:border-border after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
           </label>
         </div>
 
@@ -214,21 +215,13 @@ export function ShareSettingsTab() {
       <div className="border-t border-border"></div>
 
       {/* 提示信息 */}
-      <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-        <div className="flex items-start gap-2">
-          <Share2 className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
-          <div>
-            <h4 className="text-sm font-semibold text-green-900 dark:text-green-100 mb-2">
-              分享功能说明
-            </h4>
-            <ul className="text-xs text-green-800 dark:text-green-200 space-y-1">
-              <li>• 只有标记为"公开"的书签才会在分享页面显示</li>
-              <li>• 你可以随时修改分享链接或关闭分享功能</li>
-              <li>• 分享页面不需要登录即可访问</li>
-            </ul>
-          </div>
-        </div>
-      </div>
+      <InfoBox icon={Share2} title="分享功能说明" variant="success">
+        <ul className="space-y-1">
+          <li>• 只有标记为"公开"的书签才会在分享页面显示</li>
+          <li>• 你可以随时修改分享链接或关闭分享功能</li>
+          <li>• 分享页面不需要登录即可访问</li>
+        </ul>
+      </InfoBox>
     </div>
   )
 }

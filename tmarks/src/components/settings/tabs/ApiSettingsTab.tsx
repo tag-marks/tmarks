@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { Key, Copy, Trash2, Plus, Eye, Ban, Info } from 'lucide-react'
+import { Key, Copy, Trash2, Plus, Eye, Ban, Info, AlertTriangle } from 'lucide-react'
 import { useApiKeys, useRevokeApiKey, useDeleteApiKey } from '@/hooks/useApiKeys'
 import { useToastStore } from '@/stores/toastStore'
 import { CreateApiKeyModal } from '@/components/api-keys/CreateApiKeyModal'
 import { ApiKeyDetailModal } from '@/components/api-keys/ApiKeyDetailModal'
 import type { ApiKey } from '@/services/api-keys'
+import { InfoBox } from '../InfoBox'
 
 export function ApiSettingsTab() {
   const { data, isLoading } = useApiKeys()
@@ -175,35 +176,21 @@ export function ApiSettingsTab() {
 
       {/* 使用说明 */}
       <div className="space-y-3">
-        <div className="flex items-start gap-3 p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-          <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-          <div>
-            <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">
-              使用说明
-            </h4>
-            <ul className="text-xs text-blue-800 dark:text-blue-200 space-y-1">
-              <li>• API Keys 用于第三方应用（如浏览器插件）安全访问您的数据</li>
-              <li>• 每个账户最多创建 {quota.limit >= 999 ? '无限制' : `${quota.limit} 个`} API Key</li>
-              <li>• 创建后仅显示一次完整密钥，请妥善保存</li>
-            </ul>
-          </div>
-        </div>
+        <InfoBox icon={Info} title="使用说明" variant="info">
+          <ul className="space-y-1">
+            <li>• API Keys 用于第三方应用（如浏览器插件）安全访问您的数据</li>
+            <li>• 每个账户最多创建 {quota.limit >= 999 ? '无限制' : `${quota.limit} 个`} API Key</li>
+            <li>• 创建后仅显示一次完整密钥，请妥善保存</li>
+          </ul>
+        </InfoBox>
 
-        <div className="flex items-start gap-3 p-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
-          <svg className="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
-          <div>
-            <h4 className="text-sm font-semibold text-yellow-900 dark:text-yellow-100 mb-2">
-              安全提示
-            </h4>
-            <ul className="text-xs text-yellow-800 dark:text-yellow-200 space-y-1">
-              <li>• 不要在公开场合分享你的 API Key</li>
-              <li>• 如果 API Key 泄露，请立即撤销并创建新的</li>
-              <li>• 撤销后的 Key 无法恢复，但可以删除以清理记录</li>
-            </ul>
-          </div>
-        </div>
+        <InfoBox icon={AlertTriangle} title="安全提示" variant="warning">
+          <ul className="space-y-1">
+            <li>• 不要在公开场合分享你的 API Key</li>
+            <li>• 如果 API Key 泄露，请立即撤销并创建新的</li>
+            <li>• 撤销后的 Key 无法恢复，但可以删除以清理记录</li>
+          </ul>
+        </InfoBox>
       </div>
 
       {/* 创建 API Key 模态框 */}

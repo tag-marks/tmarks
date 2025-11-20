@@ -1,5 +1,6 @@
-import { Chrome, Shield, ExternalLink, Download } from 'lucide-react'
+import { Chrome, Shield, ExternalLink, Download, Info } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { InfoBox } from '../InfoBox'
 
 export function BrowserSettingsTab() {
   const navigate = useNavigate()
@@ -64,8 +65,8 @@ export function BrowserSettingsTab() {
           })}
         </div>
 
-        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
-          <p className="text-xs text-blue-800 dark:text-blue-200">
+        <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+          <p className="text-xs text-muted-foreground">
             💡 提供 8 个浏览器专用版本，也可以使用 Chrome 通用版（支持所有基于 Chrome 的浏览器）
           </p>
         </div>
@@ -144,7 +145,7 @@ export function BrowserSettingsTab() {
           <h4 className="text-sm font-semibold">扩展所需权限</h4>
           
           <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/30">
-            <Shield className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+            <Shield className="w-5 h-5 text-success flex-shrink-0 mt-0.5" />
             <div className="flex-1">
               <div className="text-sm font-medium mb-1">书签访问权限</div>
               <div className="text-xs text-muted-foreground">
@@ -154,7 +155,7 @@ export function BrowserSettingsTab() {
           </div>
 
           <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/30">
-            <Shield className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+            <Shield className="w-5 h-5 text-success flex-shrink-0 mt-0.5" />
             <div className="flex-1">
               <div className="text-sm font-medium mb-1">标签页访问权限</div>
               <div className="text-xs text-muted-foreground">
@@ -164,7 +165,7 @@ export function BrowserSettingsTab() {
           </div>
 
           <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/30">
-            <Shield className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+            <Shield className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
             <div className="flex-1">
               <div className="text-sm font-medium mb-1">存储权限</div>
               <div className="text-xs text-muted-foreground">
@@ -250,22 +251,14 @@ export function BrowserSettingsTab() {
       <div className="border-t border-border"></div>
 
       {/* 提示信息 */}
-      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-        <div className="flex items-start gap-2">
-          <ExternalLink className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-          <div>
-            <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">
-              使用提示
-            </h4>
-            <ul className="text-xs text-blue-800 dark:text-blue-200 space-y-1">
-              <li>• 首次使用需要在插件中配置 TMarks 网站地址和 API Key</li>
-              <li>• 建议将插件图标固定到工具栏，方便快速访问</li>
-              <li>• 插件会自动保存标签页的标题、URL 和网站图标</li>
-              <li>• 所有数据自动同步到云端，多设备无缝切换</li>
-            </ul>
-          </div>
-        </div>
-      </div>
+      <InfoBox icon={Info} title="使用提示" variant="info">
+        <ul className="space-y-1">
+          <li>• 首次使用需要在插件中配置 TMarks 网站地址和 API Key</li>
+          <li>• 建议将插件图标固定到工具栏，方便快速访问</li>
+          <li>• 插件会自动保存标签页的标题、URL 和网站图标</li>
+          <li>• 所有数据自动同步到云端，多设备无缝切换</li>
+        </ul>
+      </InfoBox>
     </div>
   )
 }

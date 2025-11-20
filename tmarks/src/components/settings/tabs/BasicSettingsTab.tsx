@@ -1,5 +1,6 @@
 import type { UserPreferences } from '@/lib/types'
-import { Sun, Moon, Monitor, LayoutGrid, List, Minimize2, Waves, Maximize2, Minimize, AlignJustify } from 'lucide-react'
+import { Sun, Moon, Monitor, LayoutGrid, List, Minimize2, Waves, Maximize2, Minimize, AlignJustify, Info } from 'lucide-react'
+import { InfoBox } from '../InfoBox'
 
 interface BasicSettingsTabProps {
     preferences: UserPreferences
@@ -129,7 +130,7 @@ export function BasicSettingsTab({ preferences, onUpdate }: BasicSettingsTabProp
                         step="10"
                         value={preferences.page_size}
                         onChange={(e) => onUpdate({ page_size: Number(e.target.value) })}
-                        className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                        className="flex-1 h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
                     />
                     <input
                         type="number"
@@ -181,24 +182,14 @@ export function BasicSettingsTab({ preferences, onUpdate }: BasicSettingsTabProp
             <div className="border-t border-border"></div>
 
             {/* 提示信息 */}
-            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                <div className="flex items-start gap-2">
-                    <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <div>
-                        <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">
-                            基础设置说明
-                        </h4>
-                        <ul className="text-xs text-blue-800 dark:text-blue-200 space-y-1">
-                            <li>• 主题设置会立即生效，无需保存</li>
-                            <li>• 视图模式可以在书签页面随时切换</li>
-                            <li>• 显示密度影响所有列表和卡片的间距</li>
-                            <li>• 每页显示数量越大，加载时间可能越长</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
+            <InfoBox icon={Info} title="基础设置说明" variant="info">
+                <ul className="space-y-1">
+                    <li>• 主题设置会立即生效，无需保存</li>
+                    <li>• 视图模式可以在书签页面随时切换</li>
+                    <li>• 显示密度影响所有列表和卡片的间距</li>
+                    <li>• 每页显示数量越大，加载时间可能越长</li>
+                </ul>
+            </InfoBox>
         </div>
     )
 }
