@@ -3,6 +3,8 @@ import { AdaptiveImage } from '@/components/common/AdaptiveImage'
 import { useRecordClick } from '@/hooks/useBookmarks'
 import { useState, useEffect, useRef } from 'react'
 import type { ImageType } from '@/lib/image-utils'
+import { DefaultBookmarkIconComponent } from './DefaultBookmarkIcon'
+import { usePreferences } from '@/hooks/usePreferences'
 
 interface BookmarkCardViewProps {
   bookmarks: Bookmark[]
@@ -171,6 +173,8 @@ function BookmarkCard({
   const [coverImageError, setCoverImageError] = useState(false)
   const [faviconError, setFaviconError] = useState(false)
   const recordClick = useRecordClick()
+  const { data: preferences } = usePreferences()
+  const defaultIcon = preferences?.default_bookmark_icon || 'bookmark'
 
   // 生成Google Favicon URL作为fallback
   const getFaviconUrl = (url: string): string => {
@@ -301,9 +305,7 @@ function BookmarkCard({
           className="relative h-24 sm:h-20 overflow-hidden flex-shrink-0 flex items-center justify-center bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5"
           style={{ borderTopLeftRadius: 'calc(var(--radius) * 1.5)', borderTopRightRadius: 'calc(var(--radius) * 1.5)' }}
         >
-          <svg className="w-10 h-10 sm:w-8 sm:h-8 text-primary/30" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
-          </svg>
+          <DefaultBookmarkIconComponent icon={defaultIcon} />
         </div>
       )}
 

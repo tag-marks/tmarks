@@ -2,6 +2,11 @@ import { useState, useEffect } from 'react'
 import { Save, RotateCcw } from 'lucide-react'
 import { usePreferences, useUpdatePreferences } from '@/hooks/usePreferences'
 import { useToastStore } from '@/stores/toastStore'
+import type { DefaultBookmarkIcon } from '@/lib/types'
+import { SearchAutoClearSettings } from '@/components/settings/SearchAutoClearSettings'
+import { TagSelectionAutoClearSettings } from '@/components/settings/TagSelectionAutoClearSettings'
+import { DefaultBookmarkIconSettings } from '@/components/settings/DefaultBookmarkIconSettings'
+import { SettingsTips } from '@/components/settings/SettingsTips'
 
 export function GeneralSettingsPage() {
   const { data: preferences, isLoading } = usePreferences()
@@ -13,6 +18,9 @@ export function GeneralSettingsPage() {
   const [tagSelectionAutoClearSeconds, setTagSelectionAutoClearSeconds] = useState(30)
   const [enableSearchAutoClear, setEnableSearchAutoClear] = useState(true)
   const [enableTagSelectionAutoClear, setEnableTagSelectionAutoClear] = useState(false)
+  
+  // 2. 默认书签图标
+  const [defaultBookmarkIcon, setDefaultBookmarkIcon] = useState<DefaultBookmarkIcon>('bookmark')
 
   // 从服务器加载设置
   useEffect(() => {
@@ -21,6 +29,7 @@ export function GeneralSettingsPage() {
       setTagSelectionAutoClearSeconds(preferences.tag_selection_auto_clear_seconds || 30)
       setEnableSearchAutoClear(preferences.enable_search_auto_clear ?? true)
       setEnableTagSelectionAutoClear(preferences.enable_tag_selection_auto_clear ?? false)
+      setDefaultBookmarkIcon(preferences.default_bookmark_icon || 'bookmark')
     }
   }, [preferences])
 
@@ -31,6 +40,7 @@ export function GeneralSettingsPage() {
         tag_selection_auto_clear_seconds: tagSelectionAutoClearSeconds,
         enable_search_auto_clear: enableSearchAutoClear,
         enable_tag_selection_auto_clear: enableTagSelectionAutoClear,
+        default_bookmark_icon: defaultBookmarkIcon,
       })
       addToast('success', '设置已保存')
     } catch {
@@ -43,6 +53,7 @@ export function GeneralSettingsPage() {
     setTagSelectionAutoClearSeconds(30)
     setEnableSearchAutoClear(true)
     setEnableTagSelectionAutoClear(false)
+    setDefaultBookmarkIcon('bookmark')
   }
 
   if (isLoading) {
@@ -82,128 +93,39 @@ export function GeneralSettingsPage() {
       </div>
 
       <div className="card p-6 space-y-6">
-        {/* 搜索框自动清空设置 */}
-        <div className="space-y-4">
-          <div>
-            <h3 className="text-lg font-semibold text-foreground">搜索框自动清空</h3>
-            <p className="text-sm text-muted-foreground mt-1">
-              设置搜索框在无操作后自动清空的时间
-            </p>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={enableSearchAutoClear}
-                onChange={(e) => setEnableSearchAutoClear(e.target.checked)}
-                className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
-              />
-              <span className="text-sm text-foreground">启用搜索框自动清空</span>
-            </label>
-          </div>
-
-          {enableSearchAutoClear && (
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-foreground">
-                自动清空时间（秒）
-              </label>
-              <div className="flex items-center gap-4">
-                <input
-                  type="range"
-                  min="5"
-                  max="60"
-                  step="5"
-                  value={searchAutoClearSeconds}
-                  onChange={(e) => setSearchAutoClearSeconds(Number(e.target.value))}
-                  className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                />
-                <input
-                  type="number"
-                  min="5"
-                  max="60"
-                  value={searchAutoClearSeconds}
-                  onChange={(e) => setSearchAutoClearSeconds(Number(e.target.value))}
-                  className="w-20 px-3 py-2 border border-border rounded-lg text-sm text-foreground bg-background"
-                />
-                <span className="text-sm text-muted-foreground">秒</span>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                搜索框在 {searchAutoClearSeconds} 秒无操作后会自动清空
-              </p>
-            </div>
-          )}
-        </div>
+        <SearchAutoClearSettings
+          enabled={enableSearchAutoClear}
+          seconds={searchAutoClearSeconds}
+          onEnabledChange={setEnableSearchAutoClear}
+          onSecondsChange={setSearchAutoClearSeconds}
+        />
 
         <div className="border-t border-border"></div>
 
-        {/* 标签选中自动清空设置 */}
-        <div className="space-y-4">
-          <div>
-            <h3 className="text-lg font-semibold text-foreground">标签选中自动清空</h3>
-            <p className="text-sm text-muted-foreground mt-1">
-              设置标签选中状态在无操作后自动清空的时间
-            </p>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={enableTagSelectionAutoClear}
-                onChange={(e) => setEnableTagSelectionAutoClear(e.target.checked)}
-                className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
-              />
-              <span className="text-sm text-foreground">启用标签选中自动清空</span>
-            </label>
-          </div>
-
-          {enableTagSelectionAutoClear && (
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-foreground">
-                自动清空时间（秒）
-              </label>
-              <div className="flex items-center gap-4">
-                <input
-                  type="range"
-                  min="10"
-                  max="120"
-                  step="10"
-                  value={tagSelectionAutoClearSeconds}
-                  onChange={(e) => setTagSelectionAutoClearSeconds(Number(e.target.value))}
-                  className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                />
-                <input
-                  type="number"
-                  min="10"
-                  max="120"
-                  value={tagSelectionAutoClearSeconds}
-                  onChange={(e) => setTagSelectionAutoClearSeconds(Number(e.target.value))}
-                  className="w-20 px-3 py-2 border border-border rounded-lg text-sm text-foreground bg-background"
-                />
-                <span className="text-sm text-muted-foreground">秒</span>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                标签选中状态在 {tagSelectionAutoClearSeconds} 秒无操作后会自动清空
-              </p>
-            </div>
-          )}
-        </div>
+        <TagSelectionAutoClearSettings
+          enabled={enableTagSelectionAutoClear}
+          seconds={tagSelectionAutoClearSeconds}
+          onEnabledChange={setEnableTagSelectionAutoClear}
+          onSecondsChange={setTagSelectionAutoClearSeconds}
+        />
 
         <div className="border-t border-border"></div>
 
-        {/* 说明信息 */}
-        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-          <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">
-            💡 使用提示
-          </h4>
-          <ul className="text-xs text-blue-800 dark:text-blue-200 space-y-1">
-            <li>• 搜索框自动清空可以帮助你快速回到全部内容视图</li>
-            <li>• 标签选中自动清空可以避免长时间保持筛选状态</li>
-            <li>• 你可以根据使用习惯调整自动清空的时间</li>
-            <li>• 如果不需要自动清空功能，可以关闭对应的开关</li>
-          </ul>
-        </div>
+        <DefaultBookmarkIconSettings
+          selectedIcon={defaultBookmarkIcon}
+          onIconChange={setDefaultBookmarkIcon}
+        />
+
+        <div className="border-t border-border"></div>
+
+        <SettingsTips
+          tips={[
+            '搜索框自动清空可以帮助你快速回到全部内容视图',
+            '标签选中自动清空可以避免长时间保持筛选状态',
+            '你可以根据使用习惯调整自动清空的时间',
+            '默认书签图标会在书签没有图片时显示',
+          ]}
+        />
       </div>
     </div>
   )

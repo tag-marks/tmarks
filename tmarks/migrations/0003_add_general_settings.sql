@@ -10,3 +10,7 @@ ALTER TABLE user_preferences ADD COLUMN enable_search_auto_clear INTEGER NOT NUL
 
 -- 是否启用标签选中自动清空
 ALTER TABLE user_preferences ADD COLUMN enable_tag_selection_auto_clear INTEGER NOT NULL DEFAULT 0;
+
+-- 默认书签图标（当书签没有封面图和网站图标时显示）
+-- 可选值: 'bookmark', 'star', 'heart', 'link', 'globe', 'folder'
+ALTER TABLE user_preferences ADD COLUMN default_bookmark_icon TEXT NOT NULL DEFAULT 'bookmark';
