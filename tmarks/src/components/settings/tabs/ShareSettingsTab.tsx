@@ -68,11 +68,6 @@ export function ShareSettingsTab() {
     }
   }
 
-  const generateSlug = () => {
-    const random = Math.random().toString(36).substring(2, 10)
-    setSlug(random)
-  }
-
   const handleReset = () => {
     if (data) {
       setEnabled(data.enabled || false)
@@ -90,8 +85,6 @@ export function ShareSettingsTab() {
       </div>
     )
   }
-
-  const shareLink = `${window.location.origin}/share/${slug}`
 
   return (
     <div className="space-y-6">

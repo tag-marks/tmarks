@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Database, Download, Upload, FileJson, FileCode, RefreshCw } from 'lucide-react'
+import { Database, Download, Upload, FileJson, FileCode } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { ExportSection } from '@/components/import-export/ExportSection'
 import { ImportSection } from '@/components/import-export/ImportSection'
