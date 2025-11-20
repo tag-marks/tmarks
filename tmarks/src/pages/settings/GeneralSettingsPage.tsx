@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Save, RotateCcw, Settings, Zap, Palette } from 'lucide-react'
+import { Save, RotateCcw, Settings, Zap, Palette, Chrome, Key, Share2, Database } from 'lucide-react'
 import { usePreferences, useUpdatePreferences } from '@/hooks/usePreferences'
 import { useToastStore } from '@/stores/toastStore'
 import type { UserPreferences } from '@/lib/types'
@@ -7,6 +7,10 @@ import { SettingsTabs } from '@/components/settings/SettingsTabs'
 import { BasicSettingsTab } from '@/components/settings/tabs/BasicSettingsTab'
 import { AutomationSettingsTab } from '@/components/settings/tabs/AutomationSettingsTab'
 import { AppearanceSettingsTab } from '@/components/settings/tabs/AppearanceSettingsTab'
+import { BrowserSettingsTab } from '@/components/settings/tabs/BrowserSettingsTab'
+import { ApiSettingsTab } from '@/components/settings/tabs/ApiSettingsTab'
+import { ShareSettingsTab } from '@/components/settings/tabs/ShareSettingsTab'
+import { DataSettingsTab } from '@/components/settings/tabs/DataSettingsTab'
 
 export function GeneralSettingsPage() {
   const { data: preferences, isLoading } = usePreferences()
@@ -68,9 +72,13 @@ export function GeneralSettingsPage() {
   }
 
   const tabs = [
-    { id: 'basic', label: '基础设置', icon: <Settings className="w-4 h-4" /> },
+    { id: 'basic', label: '基础', icon: <Settings className="w-4 h-4" /> },
     { id: 'automation', label: '自动化', icon: <Zap className="w-4 h-4" /> },
-    { id: 'appearance', label: '外观定制', icon: <Palette className="w-4 h-4" /> },
+    { id: 'appearance', label: '外观', icon: <Palette className="w-4 h-4" /> },
+    { id: 'browser', label: '浏览器', icon: <Chrome className="w-4 h-4" /> },
+    { id: 'api', label: 'API', icon: <Key className="w-4 h-4" /> },
+    { id: 'share', label: '分享', icon: <Share2 className="w-4 h-4" /> },
+    { id: 'data', label: '数据', icon: <Database className="w-4 h-4" /> },
   ]
 
   return (
@@ -133,6 +141,14 @@ export function GeneralSettingsPage() {
               onTagLayoutChange={(layout) => handleUpdate({ tag_layout: layout })}
             />
           )}
+
+          {activeTab === 'browser' && <BrowserSettingsTab />}
+
+          {activeTab === 'api' && <ApiSettingsTab />}
+
+          {activeTab === 'share' && <ShareSettingsTab />}
+
+          {activeTab === 'data' && <DataSettingsTab />}
         </SettingsTabs>
       </div>
     </div>
