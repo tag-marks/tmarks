@@ -176,7 +176,7 @@ function BookmarkCard({
   const { data: preferences } = usePreferences()
   const defaultIcon = preferences?.default_bookmark_icon || 'bookmark'
 
-  // 生成Google Favicon URL作为fallback
+  // 生成Google Favicon URL作为最终fallback
   const getFaviconUrl = (url: string): string => {
     try {
       const urlObj = new URL(url)
@@ -186,12 +186,16 @@ function BookmarkCard({
     }
   }
 
-  const fallbackFaviconUrl = getFaviconUrl(bookmark.url)
+  const googleFaviconUrl = getFaviconUrl(bookmark.url)
 
-  // 决定显示什么图片
+  // 决定显示什么图片 - 三级回退策略
+  // 1. cover_image (封面图)
+  // 2. favicon (网站图标，从插件获取)
+  // 3. Google Favicon API (最终回退)
   const hasCoverImage = bookmark.cover_image && bookmark.cover_image.trim() !== '' && !coverImageError
-  const shouldShowFallback = !hasCoverImage && fallbackFaviconUrl && !faviconError
-  const shouldShowImageArea = hasCoverImage || shouldShowFallback
+  const hasFavicon = !hasCoverImage && bookmark.favicon && bookmark.favicon.trim() !== '' && !faviconError
+  const shouldShowGoogleFavicon = !hasCoverImage && !hasFavicon && googleFaviconUrl && !faviconError
+  const shouldShowImageArea = hasCoverImage || hasFavicon || shouldShowGoogleFavicon
 
   const handleVisit = () => {
     // 记录点击统计
@@ -265,10 +269,10 @@ function BookmarkCard({
         </button>
       )}
 
-      {/* 图片区域 - 优先显示cover_image，失败则显示favicon，都失败则显示默认图标 */}
+      {/* 图片区域 - 三级回退：cover_image → favicon → Google Favicon API → 默认图标 */}
       {shouldShowImageArea && (
         <div
-          className={`relative overflow-hidden flex-shrink-0 flex items-center justify-center ${imageType === 'favicon' || shouldShowFallback
+          className={`relative overflow-hidden flex-shrink-0 flex items-center justify-center ${imageType === 'favicon' || hasFavicon || shouldShowGoogleFavicon
             ? 'h-24 sm:h-20 bg-gradient-to-br from-primary/5 to-secondary/5'
             : 'h-40 sm:h-32 bg-gradient-to-br from-primary/10 to-secondary/10'
             }`}
@@ -286,10 +290,19 @@ function BookmarkCard({
               onTypeDetected={setImageType}
               onError={() => setCoverImageError(true)}
             />
-          ) : shouldShowFallback ? (
+          ) : hasFavicon ? (
             <div className="relative w-14 h-14 sm:w-12 sm:h-12 flex items-center justify-center">
               <img
-                src={fallbackFaviconUrl}
+                src={bookmark.favicon!}
+                alt={bookmark.title}
+                className="w-full h-full object-contain"
+                onError={() => setFaviconError(true)}
+              />
+            </div>
+          ) : shouldShowGoogleFavicon ? (
+            <div className="relative w-14 h-14 sm:w-12 sm:h-12 flex items-center justify-center">
+              <img
+                src={googleFaviconUrl}
                 alt={bookmark.title}
                 className="w-full h-full object-contain"
                 onError={() => setFaviconError(true)}
