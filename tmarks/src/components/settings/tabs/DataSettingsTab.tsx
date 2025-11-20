@@ -1,4 +1,4 @@
-import { Database, Download, Upload, Trash2, FileJson, FileCode, AlertTriangle } from 'lucide-react'
+import { Database, Download, Upload, FileJson, FileCode } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 export function DataSettingsTab() {
@@ -146,99 +146,7 @@ export function DataSettingsTab() {
         </div>
       </div>
 
-      <div className="border-t border-border"></div>
 
-      {/* 存储信息 */}
-      <div className="space-y-4">
-        <div>
-          <h3 className="text-lg font-semibold text-foreground">存储信息</h3>
-          <p className="text-sm text-muted-foreground mt-1">
-            查看当前数据使用情况
-          </p>
-        </div>
-
-        <div className="grid sm:grid-cols-3 gap-4">
-          <div className="p-4 rounded-lg bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20">
-            <div className="text-2xl font-bold text-primary mb-1">-</div>
-            <div className="text-xs text-muted-foreground">书签总数</div>
-          </div>
-          <div className="p-4 rounded-lg bg-gradient-to-br from-success/10 to-success/5 border border-success/20">
-            <div className="text-2xl font-bold text-success mb-1">-</div>
-            <div className="text-xs text-muted-foreground">标签总数</div>
-          </div>
-          <div className="p-4 rounded-lg bg-gradient-to-br from-blue-500/10 to-blue-500/5 border border-blue-500/20">
-            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400 mb-1">-</div>
-            <div className="text-xs text-muted-foreground">存储空间</div>
-          </div>
-        </div>
-      </div>
-
-      <div className="border-t border-border"></div>
-
-      {/* 危险操作 */}
-      <div className="space-y-4">
-        <div>
-          <h3 className="text-lg font-semibold text-error">危险操作</h3>
-          <p className="text-sm text-muted-foreground mt-1">
-            这些操作不可恢复，请谨慎使用
-          </p>
-        </div>
-
-        <div className="p-4 rounded-lg border-2 border-error/20 bg-error/5">
-          <div className="flex items-start gap-3">
-            <Trash2 className="w-5 h-5 text-error flex-shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <div className="text-sm font-medium mb-1">清空所有数据</div>
-              <div className="text-xs text-muted-foreground mb-3">
-                删除所有书签、标签和相关数据，此操作不可恢复
-              </div>
-              <button className="btn btn-sm bg-error text-white hover:bg-error/90">
-                清空数据
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="border-t border-border"></div>
-
-      {/* 注意事项 */}
-      <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-        <div className="flex items-start gap-2">
-          <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
-          <div>
-            <h4 className="text-sm font-semibold text-yellow-900 dark:text-yellow-100 mb-2">
-              注意事项
-            </h4>
-            <ul className="text-xs text-yellow-800 dark:text-yellow-200 space-y-1">
-              <li>• 导入前建议先导出当前数据作为备份</li>
-              <li>• 大文件导入可能需要较长时间，请耐心等待</li>
-              <li>• 导入过程中请勿关闭页面</li>
-              <li>• 如遇到问题，可查看错误详情进行排查</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      <div className="border-t border-border"></div>
-
-      {/* 使用提示 */}
-      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-        <div className="flex items-start gap-2">
-          <Database className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-          <div>
-            <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">
-              数据管理建议
-            </h4>
-            <ul className="text-xs text-blue-800 dark:text-blue-200 space-y-1">
-              <li>• 建议定期导出数据作为备份（推荐每月一次）</li>
-              <li>• 导入数据时会自动去重，不会产生重复书签</li>
-              <li>• 所有数据都存储在云端，可以在多设备间同步</li>
-              <li>• JSON 格式保留最完整的数据，HTML 格式兼容性最好</li>
-            </ul>
-          </div>
-        </div>
-      </div>
     </div>
   )
 }
