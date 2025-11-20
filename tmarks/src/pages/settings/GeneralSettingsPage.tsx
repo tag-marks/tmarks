@@ -82,7 +82,7 @@ export function GeneralSettingsPage() {
   ]
 
   return (
-    <div className="max-w-5xl mx-auto p-6 space-y-6">
+    <div className="mx-auto p-3 sm:p-6 space-y-4 sm:space-y-6 w-full" style={{ maxWidth: 'min(61.8vw, 1400px)' }}>
       {/* 页面标题和操作按钮 */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
