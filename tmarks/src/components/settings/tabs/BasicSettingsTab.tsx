@@ -18,7 +18,7 @@ export function BasicSettingsTab({ preferences, onUpdate }: BasicSettingsTabProp
                         选择应用的外观主题
                     </p>
                 </div>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-3 gap-2 sm:gap-3">
                     {[
                         { value: 'light', label: '浅色', icon: Sun },
                         { value: 'dark', label: '深色', icon: Moon },
@@ -29,13 +29,13 @@ export function BasicSettingsTab({ preferences, onUpdate }: BasicSettingsTabProp
                             <button
                                 key={theme.value}
                                 onClick={() => onUpdate({ theme: theme.value as any })}
-                                className={`p-4 rounded-xl border-2 transition-all ${preferences.theme === theme.value
+                                className={`p-3 sm:p-4 rounded-xl border-2 transition-all ${preferences.theme === theme.value
                                     ? 'border-primary bg-primary/5'
                                     : 'border-border hover:border-primary/50'
                                     }`}
                             >
-                                <Icon className="w-8 h-8 mx-auto mb-2 text-primary" />
-                                <div className="text-sm font-medium">{theme.label}</div>
+                                <Icon className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-1 sm:mb-2 text-primary" />
+                                <div className="text-xs sm:text-sm font-medium">{theme.label}</div>
                             </button>
                         )
                     })}
@@ -52,7 +52,7 @@ export function BasicSettingsTab({ preferences, onUpdate }: BasicSettingsTabProp
                         选择书签列表的默认显示方式
                     </p>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
                     {[
                         { value: 'card', label: '卡片视图', icon: LayoutGrid },
                         { value: 'list', label: '列表视图', icon: List },
@@ -64,12 +64,12 @@ export function BasicSettingsTab({ preferences, onUpdate }: BasicSettingsTabProp
                             <button
                                 key={mode.value}
                                 onClick={() => onUpdate({ view_mode: mode.value as any })}
-                                className={`p-3 rounded-lg border-2 transition-all ${preferences.view_mode === mode.value
+                                className={`p-2 sm:p-3 rounded-lg border-2 transition-all ${preferences.view_mode === mode.value
                                     ? 'border-primary bg-primary/5'
                                     : 'border-border hover:border-primary/50'
                                     }`}
                             >
-                                <Icon className="w-6 h-6 mx-auto mb-1 text-primary" />
+                                <Icon className="w-5 h-5 sm:w-6 sm:h-6 mx-auto mb-1 text-primary" />
                                 <div className="text-xs font-medium">{mode.label}</div>
                             </button>
                         )
@@ -87,7 +87,7 @@ export function BasicSettingsTab({ preferences, onUpdate }: BasicSettingsTabProp
                         调整界面元素的紧凑程度
                     </p>
                 </div>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-3 gap-2 sm:gap-3">
                     {[
                         { value: 'compact', label: '紧凑', desc: '更多内容', icon: Minimize },
                         { value: 'normal', label: '标准', desc: '平衡舒适', icon: Minimize2 },
@@ -98,14 +98,14 @@ export function BasicSettingsTab({ preferences, onUpdate }: BasicSettingsTabProp
                             <button
                                 key={density.value}
                                 onClick={() => onUpdate({ density: density.value as any })}
-                                className={`p-4 rounded-lg border-2 transition-all ${preferences.density === density.value
+                                className={`p-2 sm:p-4 rounded-lg border-2 transition-all ${preferences.density === density.value
                                     ? 'border-primary bg-primary/5'
                                     : 'border-border hover:border-primary/50'
                                     }`}
                             >
-                                <Icon className="w-5 h-5 mb-2 text-primary" />
-                                <div className="text-sm font-medium mb-1">{density.label}</div>
-                                <div className="text-xs text-muted-foreground">{density.desc}</div>
+                                <Icon className="w-4 h-4 sm:w-5 sm:h-5 mb-1 sm:mb-2 text-primary" />
+                                <div className="text-xs sm:text-sm font-medium mb-0.5 sm:mb-1">{density.label}</div>
+                                <div className="text-[10px] sm:text-xs text-muted-foreground hidden sm:block">{density.desc}</div>
                             </button>
                         )
                     })}
@@ -157,7 +157,7 @@ export function BasicSettingsTab({ preferences, onUpdate }: BasicSettingsTabProp
                         选择书签列表的默认排序规则
                     </p>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
                     {[
                         { value: 'created', label: '创建时间', desc: '最新创建' },
                         { value: 'updated', label: '更新时间', desc: '最近修改' },
@@ -167,13 +167,13 @@ export function BasicSettingsTab({ preferences, onUpdate }: BasicSettingsTabProp
                         <button
                             key={sort.value}
                             onClick={() => onUpdate({ sort_by: sort.value as any })}
-                            className={`p-3 rounded-lg border-2 transition-all ${preferences.sort_by === sort.value
+                            className={`p-2 sm:p-3 rounded-lg border-2 transition-all ${preferences.sort_by === sort.value
                                 ? 'border-primary bg-primary/5'
                                 : 'border-border hover:border-primary/50'
                                 }`}
                         >
-                            <div className="text-sm font-medium mb-1">{sort.label}</div>
-                            <div className="text-xs text-muted-foreground">{sort.desc}</div>
+                            <div className="text-xs sm:text-sm font-medium mb-0.5 sm:mb-1">{sort.label}</div>
+                            <div className="text-[10px] sm:text-xs text-muted-foreground">{sort.desc}</div>
                         </button>
                     ))}
                 </div>

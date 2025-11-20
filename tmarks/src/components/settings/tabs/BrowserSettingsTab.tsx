@@ -45,18 +45,18 @@ export function BrowserSettingsTab() {
           </button>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
           {browsers.map((browser) => {
             const Icon = browser.icon
             return (
               <button
                 key={browser.id}
                 onClick={() => handleDownload(browser.id as any)}
-                className="p-4 rounded-xl border-2 border-border hover:border-primary/50 transition-all text-center group"
+                className="p-3 sm:p-4 rounded-xl border-2 border-border hover:border-primary/50 transition-all text-center group"
               >
-                <Icon className={`w-10 h-10 mx-auto mb-2 ${browser.color}`} />
-                <div className="text-sm font-medium mb-1">{browser.name}</div>
-                <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground group-hover:text-primary">
+                <Icon className={`w-8 h-8 sm:w-10 sm:h-10 mx-auto mb-1 sm:mb-2 ${browser.color}`} />
+                <div className="text-xs sm:text-sm font-medium mb-0.5 sm:mb-1">{browser.name}</div>
+                <div className="flex items-center justify-center gap-1 text-[10px] sm:text-xs text-muted-foreground group-hover:text-primary">
                   <Download className="w-3 h-3" />
                   点击下载
                 </div>

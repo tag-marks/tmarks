@@ -58,17 +58,17 @@ export function ApiSettingsTab() {
     <div className="space-y-6">
       {/* API Keys 管理 */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-semibold text-foreground">API Keys 管理</h3>
-            <p className="text-sm text-muted-foreground mt-1">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex-1">
+            <h3 className="text-base sm:text-lg font-semibold text-foreground">API Keys 管理</h3>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1">
               创建和管理 API 密钥，用于第三方应用访问
             </p>
           </div>
           <button
             onClick={() => setShowCreateModal(true)}
             disabled={quota.used >= quota.limit}
-            className="btn btn-primary flex items-center gap-2"
+            className="btn btn-primary btn-sm sm:btn flex items-center gap-2 justify-center"
           >
             <Plus className="w-4 h-4" />
             创建

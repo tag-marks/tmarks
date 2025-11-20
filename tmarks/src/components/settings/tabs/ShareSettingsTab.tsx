@@ -120,10 +120,10 @@ export function ShareSettingsTab() {
         {/* 分享链接设置 */}
         {enabled && (
           <>
-            <div className="grid sm:grid-cols-2 gap-4">
+            <div className="grid sm:grid-cols-2 gap-3 sm:gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">分享链接后缀</label>
-                <div className="flex gap-2">
+                <label className="text-xs sm:text-sm font-medium">分享链接后缀</label>
+                <div className="flex flex-col sm:flex-row gap-2">
                   <input
                     type="text"
                     value={slug}
@@ -135,10 +135,10 @@ export function ShareSettingsTab() {
                   <button
                     onClick={handleRegenerate}
                     disabled={updateShare.isPending}
-                    className="btn btn-secondary flex items-center gap-2"
+                    className="btn btn-secondary btn-sm sm:btn flex items-center gap-2 justify-center"
                   >
                     <RefreshCw className="w-4 h-4" />
-                    重新生成
+                    <span>重新生成</span>
                   </button>
                 </div>
                 <p className="text-xs text-muted-foreground">
@@ -147,7 +147,7 @@ export function ShareSettingsTab() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium">页面标题</label>
+                <label className="text-xs sm:text-sm font-medium">页面标题</label>
                 <input
                   type="text"
                   value={title}
@@ -192,18 +192,18 @@ export function ShareSettingsTab() {
             </div>
 
             {/* 操作按钮 */}
-            <div className="flex justify-end gap-2">
+            <div className="flex flex-col sm:flex-row justify-end gap-2">
               <button
                 onClick={handleReset}
                 disabled={updateShare.isPending}
-                className="btn btn-secondary"
+                className="btn btn-secondary btn-sm sm:btn"
               >
                 重置
               </button>
               <button
                 onClick={handleSave}
                 disabled={updateShare.isPending}
-                className="btn btn-primary"
+                className="btn btn-primary btn-sm sm:btn"
               >
                 {updateShare.isPending ? '保存中...' : '保存设置'}
               </button>
