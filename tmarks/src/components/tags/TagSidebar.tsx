@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useTags, useCreateTag } from '@/hooks/useTags'
 import { tagsService } from '@/services/tags'
 import type { Bookmark, Tag } from '@/lib/types'
@@ -33,6 +34,7 @@ export function TagSidebar({
   onTagSortChange,
   searchQuery: externalSearchQuery = '',  // 新增：接收外部搜索关键词
 }: TagSidebarProps) {
+  const navigate = useNavigate()
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [showManageModal, setShowManageModal] = useState(false)
   const [newTagName, setNewTagName] = useState('')
@@ -166,10 +168,21 @@ export function TagSidebar({
           {/* 右侧按钮组 */}
           {!readOnly && (
             <>
+              {/* 统计按钮 */}
+              <button
+                onClick={() => navigate('/bookmarks/statistics')}
+                className="btn btn-sm btn-ghost p-2 flex-shrink-0 ml-auto"
+                title="查看统计"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </button>
+
               {/* 设置按钮 */}
               <button
                 onClick={() => setShowManageModal(true)}
-                className="btn btn-sm btn-ghost p-2 flex-shrink-0 ml-auto"
+                className="btn btn-sm btn-ghost p-2 flex-shrink-0"
                 title="管理标签"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
