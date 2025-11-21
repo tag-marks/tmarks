@@ -198,10 +198,12 @@ export const onRequestPost: PagesFunction<Env, 'id', AuthContext>[] = [
            WHERE bookmark_id = ? AND id != ?`
         ).bind(bookmarkId, snapshotId),
 
-        // 更新书签表
+        // 更新书签表（增加快照计数）
         db.prepare(
           `UPDATE bookmarks 
-           SET has_snapshot = 1, latest_snapshot_at = ? 
+           SET has_snapshot = 1, 
+               latest_snapshot_at = ?,
+               snapshot_count = snapshot_count + 1
            WHERE id = ?`
         ).bind(now, bookmarkId),
       ]

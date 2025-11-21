@@ -43,6 +43,9 @@ export interface Bookmark {
   is_public: boolean
   click_count: number
   last_clicked_at: string | null
+  has_snapshot?: boolean
+  latest_snapshot_at?: string | null
+  snapshot_count?: number
   created_at: string
   updated_at: string
   deleted_at: string | null

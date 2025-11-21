@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Save, RotateCcw, Settings, Zap, Palette, Chrome, Key, Share2, Database, LogOut } from 'lucide-react'
+import { Save, RotateCcw, Settings, Zap, Palette, Chrome, Key, Share2, Database, LogOut, BarChart3 } from 'lucide-react'
 import { usePreferences, useUpdatePreferences } from '@/hooks/usePreferences'
 import { useAuthStore } from '@/stores/authStore'
 import { useToastStore } from '@/stores/toastStore'
@@ -13,6 +13,7 @@ import { BrowserSettingsTab } from '@/components/settings/tabs/BrowserSettingsTa
 import { ApiSettingsTab } from '@/components/settings/tabs/ApiSettingsTab'
 import { ShareSettingsTab } from '@/components/settings/tabs/ShareSettingsTab'
 import { DataSettingsTab } from '@/components/settings/tabs/DataSettingsTab'
+import { BookmarkStatisticsPage } from '@/pages/bookmarks/BookmarkStatisticsPage'
 
 export function GeneralSettingsPage() {
   const navigate = useNavigate()
@@ -92,6 +93,7 @@ export function GeneralSettingsPage() {
     { id: 'api', label: 'API', icon: <Key className="w-4 h-4" /> },
     { id: 'share', label: '分享', icon: <Share2 className="w-4 h-4" /> },
     { id: 'data', label: '数据', icon: <Database className="w-4 h-4" /> },
+    { id: 'statistics', label: '数据分析', icon: <BarChart3 className="w-4 h-4" /> },
   ]
 
   return (
@@ -170,6 +172,12 @@ export function GeneralSettingsPage() {
           {activeTab === 'share' && <ShareSettingsTab />}
 
           {activeTab === 'data' && <DataSettingsTab />}
+
+          {activeTab === 'statistics' && (
+            <div className="-m-3 sm:-m-6">
+              <BookmarkStatisticsPage />
+            </div>
+          )}
         </SettingsTabs>
       </div>
     </div>

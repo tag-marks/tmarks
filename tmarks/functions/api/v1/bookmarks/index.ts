@@ -203,10 +203,30 @@ export const onRequestGet: PagesFunction<Env, RouteParams, AuthContext>[] = [
         }
       }
 
+      // 一次性获取所有书签的快照数量
+      let snapshotCounts = new Map<string, number>()
+      
+      if (bookmarkIds.length > 0) {
+        const placeholders = bookmarkIds.map(() => '?').join(',')
+        const { results: countResults } = await context.env.DB.prepare(
+          `SELECT bookmark_id, COUNT(*) as count
+           FROM bookmark_snapshots
+           WHERE bookmark_id IN (${placeholders})
+           GROUP BY bookmark_id`
+        )
+          .bind(...bookmarkIds)
+          .all<{ bookmark_id: string; count: number }>()
+
+        for (const row of countResults || []) {
+          snapshotCounts.set(row.bookmark_id, row.count)
+        }
+      }
+
       // 组装书签和标签数据
       const bookmarksWithTags: BookmarkWithTags[] = bookmarks.map(bookmark => ({
         ...normalizeBookmark(bookmark),
         tags: tagsByBookmarkId.get(bookmark.id) || [],
+        snapshot_count: snapshotCounts.get(bookmark.id) || 0,
       }))
 
       const responseData = {

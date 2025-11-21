@@ -125,6 +125,16 @@ export const onRequestDelete: PagesFunction<Env, RouteParams, AuthContext>[] = [
         .bind(snapshotId)
         .run()
 
+      // 更新书签的快照计数（减1）
+      await db
+        .prepare(
+          `UPDATE bookmarks 
+           SET snapshot_count = MAX(0, snapshot_count - 1)
+           WHERE id = ?`
+        )
+        .bind(bookmarkId)
+        .run()
+
       // 如果删除的是最新快照，更新下一个为最新
       if (snapshot.is_latest) {
         const nextLatest = await db
@@ -151,7 +161,9 @@ export const onRequestDelete: PagesFunction<Env, RouteParams, AuthContext>[] = [
           await db
             .prepare(
               `UPDATE bookmarks 
-               SET has_snapshot = 0, latest_snapshot_at = NULL 
+               SET has_snapshot = 0, 
+                   latest_snapshot_at = NULL,
+                   snapshot_count = 0
                WHERE id = ?`
             )
             .bind(bookmarkId)

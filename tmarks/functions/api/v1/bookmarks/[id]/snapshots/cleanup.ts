@@ -115,14 +115,29 @@ export const onRequestPost: PagesFunction<Env, RouteParams, AuthContext>[] = [
         .bind(bookmarkId, userId)
         .first()
 
-      if (!remaining || (remaining.count as number) === 0) {
+      const remainingCount = (remaining?.count as number) || 0
+
+      if (remainingCount === 0) {
+        // 没有快照了
         await db
           .prepare(
             `UPDATE bookmarks 
-             SET has_snapshot = 0, latest_snapshot_at = NULL 
+             SET has_snapshot = 0, 
+                 latest_snapshot_at = NULL,
+                 snapshot_count = 0
              WHERE id = ?`
           )
           .bind(bookmarkId)
+          .run()
+      } else {
+        // 更新快照计数
+        await db
+          .prepare(
+            `UPDATE bookmarks 
+             SET snapshot_count = ?
+             WHERE id = ?`
+          )
+          .bind(remainingCount, bookmarkId)
           .run()
       }
 
