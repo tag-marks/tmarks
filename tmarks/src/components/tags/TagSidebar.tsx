@@ -138,14 +138,17 @@ export function TagSidebar({
             title={tagLayout === 'grid' ? '网格布局 (点击切换到瀑布流)' : '瀑布流布局 (点击切换到网格)'}
           >
             {tagLayout === 'grid' ? (
-              // 网格图标
+              // 网格图标 - 规整的方格
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
               </svg>
             ) : (
-              // 瀑布流图标
+              // 瀑布流图标 - 不同高度的列
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 5h6v4H4V5zM4 11h6v8H4v-8zM12 5h8v6h-8V5zM12 13h8v6h-8v-6z" />
+                <rect x="3" y="3" width="7" height="8" rx="1" />
+                <rect x="3" y="13" width="7" height="8" rx="1" />
+                <rect x="14" y="3" width="7" height="12" rx="1" />
+                <rect x="14" y="17" width="7" height="4" rx="1" />
               </svg>
             )}
           </button>
