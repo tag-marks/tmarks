@@ -20,62 +20,62 @@ export function BrowserSettingsTab() {
       case 'chrome':
         return (
           <svg className={baseClass} viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="12" r="10" fill="#4285F4"/>
-            <circle cx="12" cy="12" r="6" fill="white"/>
-            <circle cx="12" cy="12" r="4" fill="#4285F4"/>
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" fill="none" stroke="#4285F4" strokeWidth="0.5"/>
+            <circle cx="12" cy="12" r="10" className="fill-primary"/>
+            <circle cx="12" cy="12" r="6" className="fill-background"/>
+            <circle cx="12" cy="12" r="4" className="fill-primary"/>
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" fill="none" className="stroke-primary" strokeWidth="0.5"/>
           </svg>
         )
       case 'edge':
         return (
           <svg className={baseClass} viewBox="0 0 24 24" fill="none">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" fill="#0078D4"/>
-            <path d="M12 6c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6" fill="#00A4EF"/>
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" className="fill-primary"/>
+            <path d="M12 6c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6" className="fill-primary/70"/>
           </svg>
         )
       case 'firefox':
         return (
           <svg className={baseClass} viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="12" r="10" fill="#FF7139"/>
-            <path d="M12 4c-4.41 0-8 3.59-8 8s3.59 8 8 8 8-3.59 8-8" fill="#FF9500"/>
-            <circle cx="12" cy="12" r="4" fill="#FFD700"/>
+            <circle cx="12" cy="12" r="10" className="fill-primary"/>
+            <path d="M12 4c-4.41 0-8 3.59-8 8s3.59 8 8 8 8-3.59 8-8" className="fill-primary/80"/>
+            <circle cx="12" cy="12" r="4" className="fill-primary/60"/>
           </svg>
         )
       case 'brave':
         return (
           <svg className={baseClass} viewBox="0 0 24 24" fill="none">
-            <path d="M12 2L3 7v5c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z" fill="#FB542B"/>
-            <path d="M12 6l-4 3v3c0 2.76 1.92 5.37 4 6 2.08-.63 4-3.24 4-6V9l-4-3z" fill="white"/>
+            <path d="M12 2L3 7v5c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z" className="fill-primary"/>
+            <path d="M12 6l-4 3v3c0 2.76 1.92 5.37 4 6 2.08-.63 4-3.24 4-6V9l-4-3z" className="fill-background"/>
           </svg>
         )
       case 'opera':
         return (
           <svg className={baseClass} viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="12" r="10" fill="#FF1B2D"/>
-            <ellipse cx="12" cy="12" rx="4" ry="7" fill="white"/>
+            <circle cx="12" cy="12" r="10" className="fill-primary"/>
+            <ellipse cx="12" cy="12" rx="4" ry="7" className="fill-background"/>
           </svg>
         )
       case '360':
         return (
           <svg className={baseClass} viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="12" r="10" fill="#14B866"/>
-            <path d="M12 4v16M4 12h16" stroke="white" strokeWidth="2"/>
+            <circle cx="12" cy="12" r="10" className="fill-primary"/>
+            <path d="M12 4v16M4 12h16" className="stroke-background" strokeWidth="2"/>
           </svg>
         )
       case 'qq':
         return (
           <svg className={baseClass} viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="12" r="10" fill="#12B7F5"/>
-            <circle cx="9" cy="10" r="1.5" fill="white"/>
-            <circle cx="15" cy="10" r="1.5" fill="white"/>
-            <path d="M8 14c0 2 1.79 3.5 4 3.5s4-1.5 4-3.5" stroke="white" strokeWidth="1.5" fill="none"/>
+            <circle cx="12" cy="12" r="10" className="fill-primary"/>
+            <circle cx="9" cy="10" r="1.5" className="fill-background"/>
+            <circle cx="15" cy="10" r="1.5" className="fill-background"/>
+            <path d="M8 14c0 2 1.79 3.5 4 3.5s4-1.5 4-3.5" className="stroke-background" strokeWidth="1.5" fill="none"/>
           </svg>
         )
       case 'sogou':
         return (
           <svg className={baseClass} viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="12" r="10" fill="#7B68EE"/>
-            <text x="12" y="16" textAnchor="middle" fill="white" fontSize="10" fontWeight="bold">搜</text>
+            <circle cx="12" cy="12" r="10" className="fill-primary"/>
+            <text x="12" y="16" textAnchor="middle" className="fill-background" fontSize="10" fontWeight="bold">搜</text>
           </svg>
         )
       default:
@@ -84,14 +84,14 @@ export function BrowserSettingsTab() {
   }
 
   const browsers = [
-    { id: 'chrome', name: 'Chrome', color: 'hover:bg-blue-50 dark:hover:bg-blue-950/20' },
-    { id: 'edge', name: 'Edge', color: 'hover:bg-cyan-50 dark:hover:bg-cyan-950/20' },
-    { id: 'firefox', name: 'Firefox', color: 'hover:bg-orange-50 dark:hover:bg-orange-950/20' },
-    { id: 'brave', name: 'Brave', color: 'hover:bg-orange-50 dark:hover:bg-orange-950/20' },
-    { id: 'opera', name: 'Opera', color: 'hover:bg-red-50 dark:hover:bg-red-950/20' },
-    { id: '360', name: '360', color: 'hover:bg-green-50 dark:hover:bg-green-950/20' },
-    { id: 'qq', name: 'QQ', color: 'hover:bg-blue-50 dark:hover:bg-blue-950/20' },
-    { id: 'sogou', name: '搜狗', color: 'hover:bg-purple-50 dark:hover:bg-purple-950/20' },
+    { id: 'chrome', name: 'Chrome', color: 'hover:bg-muted/50' },
+    { id: 'edge', name: 'Edge', color: 'hover:bg-muted/50' },
+    { id: 'firefox', name: 'Firefox', color: 'hover:bg-muted/50' },
+    { id: 'brave', name: 'Brave', color: 'hover:bg-muted/50' },
+    { id: 'opera', name: 'Opera', color: 'hover:bg-muted/50' },
+    { id: '360', name: '360', color: 'hover:bg-muted/50' },
+    { id: 'qq', name: 'QQ', color: 'hover:bg-muted/50' },
+    { id: 'sogou', name: '搜狗', color: 'hover:bg-muted/50' },
   ]
 
   return (
