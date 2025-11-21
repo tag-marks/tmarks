@@ -612,7 +612,7 @@ export function BookmarksPage() {
                         {/* 搜索模式切换按钮 - 内部左侧 */}
                         <button
                           onClick={() => setSearchMode(searchMode === 'bookmark' ? 'tag' : 'bookmark')}
-                          className="absolute left-3 top-1/2 -translate-y-1/2 z-10 flex items-center justify-center transition-all hover:text-primary"
+                          className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 z-10 flex items-center justify-center transition-all hover:text-primary"
                           title={searchMode === 'bookmark' ? '切换到标签搜索' : '切换到书签搜索'}
                           aria-label={searchMode === 'bookmark' ? '切换到标签搜索' : '切换到书签搜索'}
                         >
@@ -630,14 +630,14 @@ export function BookmarksPage() {
                         </button>
 
                         {/* 搜索图标 */}
-                        <svg className="absolute left-11 sm:left-12 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="absolute left-12 sm:left-14 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
 
                         {/* 搜索输入框 */}
                         <input
                           type="text"
-                          className="input w-full pl-[4.5rem] sm:pl-20 h-11 sm:h-auto text-sm sm:text-base"
+                          className="input w-full pl-[5rem] sm:pl-[5.5rem] h-11 sm:h-auto text-sm sm:text-base"
                           placeholder={searchMode === 'bookmark' ? '搜索书签...' : '搜索标签...'}
                           value={searchKeyword}
                           onChange={(e) => setSearchKeyword(e.target.value)}
