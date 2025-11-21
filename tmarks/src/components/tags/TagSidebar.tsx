@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useTags, useCreateTag } from '@/hooks/useTags'
+import { tagsService } from '@/services/tags'
 import type { Bookmark, Tag } from '@/lib/types'
 import { TagManageModal } from './TagManageModal'
 import { TagItem } from './TagItem'
@@ -56,12 +57,21 @@ export function TagSidebar({
     externalSearchQuery  // 使用外部搜索关键词
   )
 
-  const handleToggleTag = (tagId: string) => {
+  const handleToggleTag = async (tagId: string) => {
     let newSelectedTags: string[]
     if (selectedTags.includes(tagId)) {
       newSelectedTags = selectedTags.filter((id) => id !== tagId)
     } else {
       newSelectedTags = [...selectedTags, tagId]
+      // 增加点击计数（异步，不阻塞UI）
+      if (!readOnly) {
+        try {
+          await tagsService.incrementClick(tagId)
+        } catch (error) {
+          logger.error('Failed to increment tag click count:', error)
+          // 静默失败，不影响用户体验
+        }
+      }
     }
     onTagsChange(newSelectedTags)
   }

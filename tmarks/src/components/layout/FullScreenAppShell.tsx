@@ -1,11 +1,8 @@
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
-import { useState, useRef, useEffect } from 'react'
 import {
   BookOpen,
   User,
-  LogOut,
-  Layers,
-  Settings
+  Layers
 } from 'lucide-react'
 import { useThemeStore } from '@/stores/themeStore'
 import { useAuthStore } from '@/stores/authStore'
@@ -17,9 +14,7 @@ export function FullScreenAppShell() {
   const { theme, colorTheme } = useThemeStore()
   const navigate = useNavigate()
   const location = useLocation()
-  const { user, logout } = useAuthStore()
-  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
-  const menuRef = useRef<HTMLDivElement>(null)
+  const { user } = useAuthStore()
 
   // 判断当前是否在标签页组页面
   const isOnTabGroupsPage = location.pathname.startsWith('/tab')
@@ -32,25 +27,6 @@ export function FullScreenAppShell() {
       navigate('/tab')
     }
   }
-
-  const handleLogout = async () => {
-    await logout()
-    navigate('/login')
-  }
-
-  // 点击外部关闭菜单
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setIsUserMenuOpen(false)
-      }
-    }
-
-    if (isUserMenuOpen) {
-      document.addEventListener('mousedown', handleClickOutside)
-      return () => document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [isUserMenuOpen])
 
   return (
     <div className="min-h-screen" style={{backgroundColor: 'var(--background)'}} data-theme={theme} data-color-theme={colorTheme}>
@@ -98,44 +74,16 @@ export function FullScreenAppShell() {
             <ThemeToggle />
             <ColorThemeSelector />
 
-            {/* 用户菜单 */}
+            {/* 用户按钮 - 直接跳转到设置 */}
             {user && (
-              <div className="relative" ref={menuRef}>
-                <button
-                  onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                  className="px-3 py-2 rounded-lg border border-border hover:border-primary hover:bg-card/50 transition-all duration-200 flex items-center justify-center gap-2"
-                  style={{color: 'var(--foreground)'}}
-                  title={user.username}
-                >
-                  <User className="w-5 h-5" />
-                </button>
-
-                {/* 下拉菜单 */}
-                {isUserMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-48 rounded-lg shadow-lg border border-border overflow-hidden z-50"
-                       style={{backgroundColor: 'var(--card)'}}>
-                    <button
-                      onClick={() => {
-                        navigate('/settings/general')
-                        setIsUserMenuOpen(false)
-                      }}
-                      className="w-full px-4 py-3 flex items-center gap-2 hover:bg-muted/50 transition-colors duration-200"
-                      style={{color: 'var(--foreground)'}}
-                    >
-                      <Settings className="w-4 h-4" />
-                      <span>通用设置</span>
-                    </button>
-                    <div className="border-t border-border"></div>
-                    <button
-                      onClick={handleLogout}
-                      className="w-full px-4 py-3 flex items-center gap-2 hover:bg-muted/50 transition-colors duration-200 text-error"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      <span>登出</span>
-                    </button>
-                  </div>
-                )}
-              </div>
+              <button
+                onClick={() => navigate('/settings/general')}
+                className="px-3 py-2 rounded-lg border border-border hover:border-primary hover:bg-card/50 transition-all duration-200 flex items-center justify-center gap-2"
+                style={{color: 'var(--foreground)'}}
+                title={`${user.username} - 点击进入设置`}
+              >
+                <User className="w-5 h-5" />
+              </button>
             )}
           </div>
         </div>
