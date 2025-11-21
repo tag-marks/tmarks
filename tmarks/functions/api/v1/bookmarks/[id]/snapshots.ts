@@ -8,7 +8,20 @@ import type { PagesFunction } from '@cloudflare/workers-types'
 import type { Env } from '../../../../lib/types'
 import { success, badRequest, notFound, internalError, forbidden } from '../../../../lib/response'
 import { requireAuth, AuthContext } from '../../../../middleware/auth'
-import { nanoid } from 'nanoid'
+
+// 生成 nanoid 风格的短 ID（21 字符）
+function generateNanoId(): string {
+  const alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
+  const length = 21
+  const randomValues = new Uint8Array(length)
+  crypto.getRandomValues(randomValues)
+  
+  let id = ''
+  for (let i = 0; i < length; i++) {
+    id += alphabet[randomValues[i] % alphabet.length]
+  }
+  return id
+}
 
 // 使用 Web Crypto API 计算 SHA-256 哈希
 async function sha256(content: string): Promise<string> {
@@ -152,7 +165,7 @@ export const onRequestPost: PagesFunction<Env, 'id', AuthContext>[] = [
       })
 
       const fileSize = new Blob([html_content]).size
-      const snapshotId = nanoid()
+      const snapshotId = generateNanoId()
       const now = new Date().toISOString()
 
       // 开始事务
