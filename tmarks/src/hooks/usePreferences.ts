@@ -63,8 +63,8 @@ export function usePreferences() {
       return failureCount < 2
     },
     // 增加缓存时间,减少请求频率
-    staleTime: 5 * 60 * 1000, // 5 分钟
-    gcTime: 10 * 60 * 1000, // 10 分钟
+    staleTime: 24 * 60 * 60 * 1000, // 24小时 (偏好很少变化)
+    gcTime: 7 * 24 * 60 * 60 * 1000, // 7天
   })
 }
 

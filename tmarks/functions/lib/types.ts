@@ -2,12 +2,24 @@ export interface Env {
   DB: D1Database
   RATE_LIMIT_KV?: KVNamespace // Optional for development
   PUBLIC_SHARE_KV?: KVNamespace // Optional cache for public share pages
+  CACHE_KV?: KVNamespace // Optional general cache
   ALLOW_REGISTRATION?: string
   JWT_SECRET: string
   ENCRYPTION_KEY: string
   ENVIRONMENT?: string // 'development' | 'production'
   JWT_ACCESS_TOKEN_EXPIRES_IN?: string
   JWT_REFRESH_TOKEN_EXPIRES_IN?: string
+  
+  // 缓存配置
+  CACHE_LEVEL?: string // '0' | '1' | '2' | '3' | 'none' | 'minimal' | 'standard' | 'aggressive'
+  ENABLE_KV_CACHE?: string // 'true' | 'false'
+  CACHE_TTL_DEFAULT_LIST?: string
+  CACHE_TTL_TAG_FILTER?: string
+  CACHE_TTL_SEARCH?: string
+  CACHE_TTL_PUBLIC_SHARE?: string
+  ENABLE_MEMORY_CACHE?: string // 'true' | 'false'
+  MEMORY_CACHE_MAX_AGE?: string
+  CACHE_DEBUG?: string // 'true' | 'false'
 }
 
 export interface User {

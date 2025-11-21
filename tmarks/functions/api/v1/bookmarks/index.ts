@@ -7,6 +7,9 @@ import { filterRateLimiter } from '../../../lib/rate-limit'
 import { generateUUID } from '../../../lib/crypto'
 import { normalizeBookmark } from '../../bookmarks/utils'
 import { invalidatePublicShareCache } from '../../shared/cache'
+import { CacheService } from '../../../lib/cache'
+import { createBookmarkCacheManager } from '../../../lib/cache/bookmark-cache'
+import type { QueryParams } from '../../../lib/cache/types'
 
 interface CreateBookmarkRequest {
   title: string
@@ -41,6 +44,29 @@ export const onRequestGet: PagesFunction<Env, RouteParams, AuthContext>[] = [
       const sortBy = url.searchParams.get('sort') || 'created' // created, updated, pinned
       const isArchived = url.searchParams.get('archived') === 'true'
       const isPinned = url.searchParams.get('pinned') === 'true'
+
+      // 初始化缓存服务
+      const cache = new CacheService(context.env)
+      const bookmarkCache = createBookmarkCacheManager(cache)
+
+      // 构建查询参数对象
+      const queryParams: QueryParams = {
+        keyword: keyword || undefined,
+        tags: tagIds.length > 0 ? tagIds : undefined,
+        archived: isArchived || undefined,
+        pinned: isPinned || undefined,
+        sort: sortBy !== 'created' ? sortBy : undefined,
+        page_cursor: pageCursor || undefined,
+      }
+
+      // 尝试从缓存获取 (只缓存默认列表查询)
+      const cached = await bookmarkCache.getBookmarkList(userId, queryParams)
+      if (cached) {
+        return success({
+          ...cached,
+          _cached: true, // 标记为缓存数据
+        })
+      }
 
       // 记录标签点击统计(异步执行,不阻塞主查询)
       if (tagIds.length > 0) {
@@ -183,7 +209,7 @@ export const onRequestGet: PagesFunction<Env, RouteParams, AuthContext>[] = [
         tags: tagsByBookmarkId.get(bookmark.id) || [],
       }))
 
-      return success({
+      const responseData = {
         bookmarks: bookmarksWithTags,
         meta: {
           page_size: pageSize,
@@ -191,7 +217,12 @@ export const onRequestGet: PagesFunction<Env, RouteParams, AuthContext>[] = [
           next_cursor: nextCursor,
           has_more: hasMore,
         },
-      })
+      }
+
+      // 异步写入缓存 (不阻塞响应)
+      await bookmarkCache.setBookmarkList(userId, queryParams, responseData, { async: true })
+
+      return success(responseData)
     } catch (error) {
       console.error('Get bookmarks error:', error)
       return internalError('Failed to get bookmarks')
@@ -321,6 +352,11 @@ export const onRequestPost: PagesFunction<Env, RouteParams, AuthContext>[] = [
       if (!bookmarkRow) {
         return internalError('Failed to load bookmark after creation')
       }
+
+      // 失效缓存
+      const cache = new CacheService(context.env)
+      const bookmarkCache = createBookmarkCacheManager(cache)
+      await bookmarkCache.invalidateUserBookmarks(userId)
 
       if (body.is_public) {
         await invalidatePublicShareCache(context.env, userId)
