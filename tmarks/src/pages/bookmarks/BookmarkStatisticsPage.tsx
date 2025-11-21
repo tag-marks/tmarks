@@ -46,7 +46,11 @@ interface BookmarkStatistics {
 
 type Granularity = 'day' | 'week' | 'month' | 'year'
 
-export function BookmarkStatisticsPage() {
+interface BookmarkStatisticsPageProps {
+  embedded?: boolean // 是否嵌入在其他页面中（如设置页面）
+}
+
+export function BookmarkStatisticsPage({ embedded = false }: BookmarkStatisticsPageProps) {
   const isMobile = useIsMobile()
   const [statistics, setStatistics] = useState<BookmarkStatistics | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -224,7 +228,7 @@ export function BookmarkStatisticsPage() {
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
         {/* Header */}
         <div className="mb-6 sm:mb-8">
-          {!isMobile && (
+          {!isMobile && !embedded && (
             <Link
               to="/bookmarks"
               className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-4 transition-colors"
@@ -235,7 +239,7 @@ export function BookmarkStatisticsPage() {
           )}
           
           <div className="flex items-center justify-between mb-4">
-            {!isMobile && (
+            {!isMobile && !embedded && (
               <div className="flex items-center gap-3">
                 <BarChart3 className="w-8 h-8 text-primary" />
                 <h1 className="text-3xl font-bold text-foreground">书签统计</h1>
