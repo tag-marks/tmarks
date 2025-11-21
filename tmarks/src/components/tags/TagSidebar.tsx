@@ -2,7 +2,6 @@ import { useState, useMemo } from 'react'
 import { useTags, useCreateTag } from '@/hooks/useTags'
 import type { Bookmark, Tag } from '@/lib/types'
 import { TagManageModal } from './TagManageModal'
-import { TagControls } from './TagControls'
 import { TagItem } from './TagItem'
 import { useTagFiltering } from './useTagFiltering'
 import { logger } from '@/lib/logger'
@@ -85,33 +84,106 @@ export function TagSidebar({
   return (
     <>
       <div className="card flex flex-col shadow-lg h-full">
-        <div className="flex items-center justify-between mb-4 sm:mb-6 flex-shrink-0">
-          <h3 className="text-lg sm:text-xl font-bold text-primary">
+        {/* 标签头部：标签 | 排序 | 显示 | 设置 | 添加 */}
+        <div className="flex items-center gap-2 mb-4 sm:mb-6 flex-shrink-0">
+          {/* 标签标题 */}
+          <h3 className="text-base sm:text-lg font-bold text-primary flex-shrink-0">
             标签
           </h3>
+
+          {/* 排序按钮 */}
+          <button
+            onClick={() => {
+              if (sortBy === 'usage') {
+                setSortBy('clicks')
+              } else if (sortBy === 'clicks') {
+                setSortBy('name')
+              } else {
+                setSortBy('usage')
+              }
+            }}
+            className="btn btn-sm btn-ghost p-2 flex-shrink-0"
+            title={
+              sortBy === 'usage'
+                ? '使用频率 (点击切换到点击次数)'
+                : sortBy === 'clicks'
+                  ? '点击次数 (点击切换到字母序)'
+                  : '字母序 (点击切换到使用频率)'
+            }
+          >
+            {sortBy === 'usage' ? (
+              // 使用频率图标
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+            ) : sortBy === 'clicks' ? (
+              // 点击次数图标
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
+              </svg>
+            ) : (
+              // 字母序图标
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
+              </svg>
+            )}
+          </button>
+
+          {/* 布局切换按钮 */}
+          <button
+            onClick={() => onTagLayoutChange(tagLayout === 'grid' ? 'masonry' : 'grid')}
+            className="btn btn-sm btn-ghost p-2 flex-shrink-0"
+            title={tagLayout === 'grid' ? '网格布局 (点击切换到瀑布流)' : '瀑布流布局 (点击切换到网格)'}
+          >
+            {tagLayout === 'grid' ? (
+              // 网格图标
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
+              </svg>
+            ) : (
+              // 瀑布流图标
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 5h6v4H4V5zM4 11h6v8H4v-8zM12 5h8v6h-8V5zM12 13h8v6h-8v-6z" />
+              </svg>
+            )}
+          </button>
+
+          {/* 右侧按钮组 */}
           {!readOnly && (
-            <div className="flex items-center gap-2">
+            <>
+              {/* 设置按钮 */}
               <button
                 onClick={() => setShowManageModal(true)}
-                className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center transition-all shadow-float bg-muted hover:bg-secondary text-foreground touch-manipulation"
+                className="btn btn-sm btn-ghost p-2 flex-shrink-0 ml-auto"
                 title="管理标签"
               >
-                <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
               </button>
+
+              {/* 添加按钮 */}
               <button
                 onClick={() => setShowCreateForm(!showCreateForm)}
-                className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center font-bold text-lg sm:text-xl transition-all shadow-float touch-manipulation ${showCreateForm
-                  ? 'bg-error text-error-content rotate-45'
-                  : 'bg-gradient-to-br from-primary to-secondary text-primary-content'
-                  }`}
+                className={`btn btn-sm p-2 flex-shrink-0 ${
+                  showCreateForm
+                    ? 'btn-ghost hover:bg-error/10 hover:text-error'
+                    : 'btn-primary'
+                }`}
                 title={showCreateForm ? '取消' : '新建标签'}
               >
-                +
+                <svg
+                  className={`w-4 h-4 transition-transform ${showCreateForm ? 'rotate-45' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  strokeWidth={2}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
               </button>
-            </div>
+            </>
           )}
         </div>
 
@@ -134,20 +206,8 @@ export function TagSidebar({
           </form>
         )}
 
-        {/* 标签控制：排序、布局、清空 */}
-        <div className="mb-4 sm:mb-5 flex-shrink-0">
-          <TagControls
-            sortBy={sortBy}
-            onSortChange={setSortBy}
-            layout={tagLayout}
-            onLayoutChange={onTagLayoutChange}
-            selectedCount={selectedTags.length}
-            onClearSelection={() => onTagsChange([])}
-          />
-        </div>
-
         {/* 标签列表 */}
-        <div className="flex-1 overflow-y-auto scrollbar-hide p-1 min-h-0">
+        <div className="flex-1 overflow-y-auto scrollbar-hide p-1 min-h-0 overscroll-contain touch-auto">
           {isTagLoading && (
             <div className="text-center py-8 text-muted-foreground/60 text-sm">
               <svg className="animate-spin h-6 w-6 mx-auto mb-2" viewBox="0 0 24 24" fill="none">

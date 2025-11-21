@@ -12,7 +12,6 @@ import { useAuthStore } from '@/stores/authStore'
 import { ThemeToggle } from '@/components/common/ThemeToggle'
 import { ColorThemeSelector } from '@/components/common/ColorThemeSelector'
 import { MobileBottomNav } from '@/components/layout/MobileBottomNav'
-import { Footer } from '@/components/layout/Footer'
 
 export function AppShell() {
   const { theme, colorTheme } = useThemeStore()
@@ -147,7 +146,6 @@ export function AppShell() {
         <div className="mx-auto flex-1" style={{ maxWidth: '100%' }}>
           <Outlet />
         </div>
-        <Footer />
       </main>
 
       {/* 移动端底部导航 */}

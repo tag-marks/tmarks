@@ -667,7 +667,7 @@ export function TabGroupsPage() {
 
       {/* 中间内容区域 */}
       <div className={`flex-1 overflow-y-auto bg-muted/30 ${isMobile ? 'min-h-0' : ''}`}>
-        <div className={`container mx-auto px-4 max-w-7xl ${isMobile ? 'py-4 pb-20' : 'py-6'}`}>
+        <div className={`w-full px-4 ${isMobile ? 'py-4 pb-20' : 'py-6'}`}>
           {/* Header */}
           <div className="mb-6">
             {/* Title and Search Bar in one row */}

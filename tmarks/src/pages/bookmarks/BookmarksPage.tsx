@@ -244,7 +244,8 @@ export function BookmarksPage() {
   const queryParams = useMemo<BookmarkQueryParams>(() => {
     const params: BookmarkQueryParams = {}
 
-    if (debouncedSearchKeyword.trim()) {
+    // 只在书签搜索模式下传递关键词
+    if (searchMode === 'bookmark' && debouncedSearchKeyword.trim()) {
       params.keyword = debouncedSearchKeyword.trim()
     }
 
@@ -255,7 +256,7 @@ export function BookmarksPage() {
     params.sort = sortBy
 
     return params
-  }, [debouncedSearchKeyword, debouncedSelectedTags, sortBy])
+  }, [searchMode, debouncedSearchKeyword, debouncedSelectedTags, sortBy])
 
   const bookmarksQuery = useInfiniteBookmarks(queryParams)
   const { refetch: refetchTags } = useTags()
@@ -569,8 +570,8 @@ export function BookmarksPage() {
     <>
       {visibilityMenuPortal}
       {viewMenuPortal}
-      <div className="w-full h-[calc(100vh-4rem)] sm:h-[calc(100vh-5rem)] flex flex-col overflow-hidden">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 lg:gap-6 w-full h-full overflow-hidden">
+      <div className="w-full h-[calc(100vh-4rem)] sm:h-[calc(100vh-5rem)] flex flex-col overflow-hidden touch-none">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 lg:gap-6 w-full h-full overflow-hidden touch-none">
           {/* 左侧：标签侧边栏 - 桌面端显示 */}
           <aside className="hidden lg:block lg:col-span-3 order-2 lg:order-1 fixed top-[calc(5rem+0.75rem)] sm:top-[calc(5rem+1rem)] md:top-[calc(5rem+1.5rem)] left-3 sm:left-4 md:left-6 bottom-3 w-[calc(25%-1.5rem)] z-40 flex flex-col overflow-hidden">
             <TagSidebar
@@ -580,7 +581,7 @@ export function BookmarksPage() {
               onTagLayoutChange={handleTagLayoutChange}
               bookmarks={filteredBookmarks}
               isLoadingBookmarks={isInitialLoading || isFetchingExisting}
-              searchQuery={debouncedSearchKeyword}
+              searchQuery={searchMode === 'tag' ? debouncedSearchKeyword : ''}
             />
           </aside>
 
@@ -608,13 +609,36 @@ export function BookmarksPage() {
                     {/* 搜索框 */}
                     <div className="flex-1 min-w-0">
                       <div className="relative w-full">
-                        <svg className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        {/* 搜索模式切换按钮 - 内部左侧 */}
+                        <button
+                          onClick={() => setSearchMode(searchMode === 'bookmark' ? 'tag' : 'bookmark')}
+                          className="absolute left-3 top-1/2 -translate-y-1/2 z-10 flex items-center justify-center transition-all hover:text-primary"
+                          title={searchMode === 'bookmark' ? '切换到标签搜索' : '切换到书签搜索'}
+                          aria-label={searchMode === 'bookmark' ? '切换到标签搜索' : '切换到书签搜索'}
+                        >
+                          {searchMode === 'bookmark' ? (
+                            // 书签图标
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                            </svg>
+                          ) : (
+                            // 标签图标
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                            </svg>
+                          )}
+                        </button>
+
+                        {/* 搜索图标 */}
+                        <svg className="absolute left-11 sm:left-12 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
+
+                        {/* 搜索输入框 */}
                         <input
                           type="text"
-                          className="input w-full pl-10 sm:pl-12 h-11 sm:h-auto text-sm sm:text-base"
-                          placeholder="搜索书签和标签..."
+                          className="input w-full pl-[4.5rem] sm:pl-20 h-11 sm:h-auto text-sm sm:text-base"
+                          placeholder={searchMode === 'bookmark' ? '搜索书签...' : '搜索标签...'}
                           value={searchKeyword}
                           onChange={(e) => setSearchKeyword(e.target.value)}
                         />
@@ -739,7 +763,7 @@ export function BookmarksPage() {
             </div>
 
             {/* 可滚动的书签列表区域 */}
-            <div className="flex-1 overflow-y-auto overflow-x-hidden px-3 sm:px-4 md:px-6 pb-20 sm:pb-4 md:pb-6 w-full">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden px-3 sm:px-4 md:px-6 pb-20 sm:pb-4 md:pb-6 w-full overscroll-contain touch-auto">
               <div className="space-y-3 sm:space-y-4 md:space-y-5 w-full min-w-0">
                 {/* 书签列表 */}
                 <BookmarkListContainer
@@ -794,7 +818,7 @@ export function BookmarksPage() {
               </div>
 
               {/* 抽屉内容区域 */}
-              <div className="flex-1 overflow-y-auto p-4 bg-background min-h-0">
+              <div className="flex-1 overflow-y-auto p-4 bg-background min-h-0 overscroll-contain touch-auto">
                 <TagSidebar
                   selectedTags={selectedTags}
                   onTagsChange={(tags) => {
@@ -808,7 +832,7 @@ export function BookmarksPage() {
                   onTagLayoutChange={handleTagLayoutChange}
                   bookmarks={filteredBookmarks}
                   isLoadingBookmarks={isInitialLoading || isFetchingExisting}
-                  searchQuery={debouncedSearchKeyword}
+                  searchQuery={searchMode === 'tag' ? debouncedSearchKeyword : ''}
                 />
               </div>
             </div>
