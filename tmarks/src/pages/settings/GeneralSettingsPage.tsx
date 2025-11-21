@@ -175,7 +175,7 @@ export function GeneralSettingsPage() {
 
           {activeTab === 'statistics' && (
             <div className="-m-3 sm:-m-6">
-              <BookmarkStatisticsPage />
+              <BookmarkStatisticsPage embedded />
             </div>
           )}
         </SettingsTabs>
