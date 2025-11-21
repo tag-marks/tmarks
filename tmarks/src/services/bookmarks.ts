@@ -88,7 +88,7 @@ export const bookmarksService = {
   }) {
     const { granularity, startDate, endDate } = params
     const response = await apiClient.get(
-      `/v1/bookmarks/statistics?granularity=${granularity}&start_date=${startDate}&end_date=${endDate}`
+      `/bookmarks/statistics?granularity=${granularity}&start_date=${startDate}&end_date=${endDate}`
     )
     return response.data
   },
