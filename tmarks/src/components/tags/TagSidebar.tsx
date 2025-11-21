@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { useTags, useCreateTag } from '@/hooks/useTags'
 import type { Bookmark, Tag } from '@/lib/types'
 import { TagManageModal } from './TagManageModal'
@@ -18,6 +18,7 @@ interface TagSidebarProps {
   availableTags?: Tag[]
   tagSortBy?: 'usage' | 'name' | 'clicks'
   onTagSortChange?: (sortBy: 'usage' | 'name' | 'clicks') => void
+  searchQuery?: string  // 新增：外部搜索关键词
 }
 
 export function TagSidebar({
@@ -30,14 +31,12 @@ export function TagSidebar({
   availableTags,
   tagSortBy: externalTagSortBy,
   onTagSortChange,
+  searchQuery: externalSearchQuery = '',  // 新增：接收外部搜索关键词
 }: TagSidebarProps) {
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [showManageModal, setShowManageModal] = useState(false)
   const [newTagName, setNewTagName] = useState('')
-  const [searchQuery, setSearchQuery] = useState('')
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('')
   const [internalSortBy, setInternalSortBy] = useState<'usage' | 'name' | 'clicks'>('usage')
-  const searchCleanupTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   // 使用外部传入的 sortBy 或内部状态
   const sortBy = externalTagSortBy !== undefined ? externalTagSortBy : internalSortBy
@@ -49,46 +48,13 @@ export function TagSidebar({
   const tags = useMemo(() => availableTags || data?.tags || [], [availableTags, data?.tags])
   const isTagLoading = availableTags ? false : isLoading
 
-  // 搜索防抖：延迟200ms更新实际搜索关键词
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearchQuery(searchQuery)
-    }, 200)
-
-    return () => clearTimeout(timer)
-  }, [searchQuery])
-
-  // 标签搜索自动清空
-  useEffect(() => {
-    // 清除之前的定时器
-    if (searchCleanupTimerRef.current) {
-      clearTimeout(searchCleanupTimerRef.current)
-      searchCleanupTimerRef.current = null
-    }
-
-    // 如果有搜索关键词，设置15秒后自动清空
-    if (searchQuery.trim()) {
-      searchCleanupTimerRef.current = setTimeout(() => {
-        setSearchQuery('')
-        setDebouncedSearchQuery('')
-      }, 15000) // 15秒
-    }
-
-    // 清理函数
-    return () => {
-      if (searchCleanupTimerRef.current) {
-        clearTimeout(searchCleanupTimerRef.current)
-        searchCleanupTimerRef.current = null
-      }
-    }
-  }, [searchQuery])
-
   // 使用自定义 Hook 处理标签筛选逻辑
+  // 使用外部传入的搜索关键词
   const { orderedTags, relatedTagIds } = useTagFiltering(
     tags,
     bookmarks,
     selectedTags,
-    debouncedSearchQuery
+    externalSearchQuery  // 使用外部搜索关键词
   )
 
   const handleToggleTag = (tagId: string) => {
@@ -168,22 +134,8 @@ export function TagSidebar({
           </form>
         )}
 
-        {/* 搜索框和排序 */}
-        <div className="mb-4 sm:mb-5 space-y-3 flex-shrink-0">
-          <div className="relative">
-            <svg className="absolute left-3 sm:left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/40 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            <input
-              type="text"
-              className="input w-full pl-10 sm:pl-11 h-10 sm:h-auto text-sm sm:text-base"
-              placeholder="搜索标签..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-
-          {/* 标签控制：排序、布局、清空 */}
+        {/* 标签控制：排序、布局、清空 */}
+        <div className="mb-4 sm:mb-5 flex-shrink-0">
           <TagControls
             sortBy={sortBy}
             onSortChange={setSortBy}
@@ -212,7 +164,7 @@ export function TagSidebar({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
               </svg>
               <p className="text-sm">
-                {searchQuery
+                {externalSearchQuery
                   ? '没有找到匹配的标签'
                   : readOnly
                     ? '发布者尚未公开任何标签'

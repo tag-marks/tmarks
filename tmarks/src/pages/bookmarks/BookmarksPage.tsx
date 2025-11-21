@@ -127,6 +127,7 @@ export function BookmarksPage() {
   const [debouncedSelectedTags, setDebouncedSelectedTags] = useState<string[]>([])
   const [searchKeyword, setSearchKeyword] = useState('')
   const [debouncedSearchKeyword, setDebouncedSearchKeyword] = useState('')
+  const [searchMode, setSearchMode] = useState<'bookmark' | 'tag'>('bookmark')  // 搜索模式
   const [sortBy, setSortBy] = useState<SortOption>('popular')
   const [viewMode, setViewMode] = useState<ViewMode>(() => getStoredViewMode() ?? 'card')
   const [visibilityFilter, setVisibilityFilter] = useState<VisibilityFilter>('all')
@@ -579,6 +580,7 @@ export function BookmarksPage() {
               onTagLayoutChange={handleTagLayoutChange}
               bookmarks={filteredBookmarks}
               isLoadingBookmarks={isInitialLoading || isFetchingExisting}
+              searchQuery={debouncedSearchKeyword}
             />
           </aside>
 
@@ -612,7 +614,7 @@ export function BookmarksPage() {
                         <input
                           type="text"
                           className="input w-full pl-10 sm:pl-12 h-11 sm:h-auto text-sm sm:text-base"
-                          placeholder="搜索书签..."
+                          placeholder="搜索书签和标签..."
                           value={searchKeyword}
                           onChange={(e) => setSearchKeyword(e.target.value)}
                         />
@@ -806,6 +808,7 @@ export function BookmarksPage() {
                   onTagLayoutChange={handleTagLayoutChange}
                   bookmarks={filteredBookmarks}
                   isLoadingBookmarks={isInitialLoading || isFetchingExisting}
+                  searchQuery={debouncedSearchKeyword}
                 />
               </div>
             </div>
