@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Camera, ExternalLink, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
+import { useAuthStore } from '@/stores/authStore';
 
 interface Snapshot {
   id: string;
@@ -21,11 +22,27 @@ export function SnapshotViewer({ bookmarkId, bookmarkTitle, snapshotCount = 0 }:
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const accessToken = useAuthStore(state => state.accessToken);
 
   const loadSnapshots = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/v1/bookmarks/${bookmarkId}/snapshots`);
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (accessToken) {
+        headers['Authorization'] = `Bearer ${accessToken}`;
+      }
+
+      const response = await fetch(`/api/v1/bookmarks/${bookmarkId}/snapshots`, {
+        headers,
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const data = await response.json();
       setSnapshots(data.snapshots || []);
     } catch (error) {
@@ -42,8 +59,14 @@ export function SnapshotViewer({ bookmarkId, bookmarkTitle, snapshotCount = 0 }:
   };
 
   const handleView = (snapshotId: string) => {
-    // 在新窗口打开快照
-    window.open(`/api/v1/bookmarks/${bookmarkId}/snapshots/${snapshotId}`, '_blank');
+    // 构建带 token 的 URL
+    const url = new URL(`/api/v1/bookmarks/${bookmarkId}/snapshots/${snapshotId}`, window.location.origin);
+    
+    if (accessToken) {
+      url.searchParams.set('token', accessToken);
+    }
+    
+    window.open(url.toString(), '_blank');
   };
 
   if (!isOpen) {
