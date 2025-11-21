@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { AppShell } from '@/components/layout/AppShell'
+import { FullScreenAppShell } from '@/components/layout/FullScreenAppShell'
 import { PublicAppShell } from '@/components/layout/PublicAppShell'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 import { LoginPage } from '@/pages/auth/LoginPage'
@@ -35,9 +36,14 @@ export function AppRouter() {
 
       {/* 受保护的路由 */}
       <Route element={<ProtectedRoute />}>
-        <Route element={<AppShell />}>
+        {/* 全屏布局 - 用于书签和标签页组 */}
+        <Route element={<FullScreenAppShell />}>
           <Route path="/" element={<BookmarksPage />} />
           <Route path="/tab" element={<TabGroupsPage />} />
+        </Route>
+
+        {/* 常规布局 - 用于设置和其他页面 */}
+        <Route element={<AppShell />}>
           <Route path="/tab/todo" element={<TodoPage />} />
           <Route path="/tab/trash" element={<TrashPage />} />
           <Route path="/tab/statistics" element={<StatisticsPage />} />

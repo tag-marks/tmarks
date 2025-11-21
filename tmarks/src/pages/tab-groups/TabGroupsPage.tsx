@@ -613,7 +613,8 @@ export function TabGroupsPage() {
   }
 
   return (
-    <div className={`flex ${isMobile ? 'flex-col' : ''} h-screen overflow-hidden bg-background`}>
+    <div className="w-full h-[calc(100vh-4rem)] sm:h-[calc(100vh-5rem)] flex flex-col overflow-hidden touch-none">
+      <div className={`flex ${isMobile ? 'flex-col' : ''} w-full h-full overflow-hidden touch-none`}>
       {/* 移动端顶部工具栏 */}
       {isMobile && (
         <MobileHeader
@@ -843,6 +844,7 @@ export function TabGroupsPage() {
 
       {/* 移动端底部导航 */}
       {isMobile && <BottomNav />}
+      </div>
     </div>
   )
 }
