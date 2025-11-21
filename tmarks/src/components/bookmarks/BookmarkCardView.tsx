@@ -380,6 +380,7 @@ function BookmarkCard({
               <SnapshotViewer 
                 bookmarkId={bookmark.id} 
                 bookmarkTitle={bookmark.title}
+                snapshotCount={bookmark.snapshot_count || 0}
               />
             )}
             

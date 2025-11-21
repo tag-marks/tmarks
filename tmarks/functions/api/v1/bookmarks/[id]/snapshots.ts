@@ -9,7 +9,15 @@ import type { Env } from '../../../../lib/types'
 import { success, badRequest, notFound, internalError, forbidden } from '../../../../lib/response'
 import { requireAuth, AuthContext } from '../../../../middleware/auth'
 import { nanoid } from 'nanoid'
-import { createHash } from 'crypto'
+
+// 使用 Web Crypto API 计算 SHA-256 哈希
+async function sha256(content: string): Promise<string> {
+  const encoder = new TextEncoder()
+  const data = encoder.encode(content)
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+  const hashArray = Array.from(new Uint8Array(hashBuffer))
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+}
 
 interface CreateSnapshotRequest {
   html_content: string
@@ -94,7 +102,7 @@ export const onRequestPost: PagesFunction<Env, 'id', AuthContext>[] = [
       }
 
       // 计算内容哈希
-      const contentHash = createHash('sha256').update(html_content).digest('hex')
+      const contentHash = await sha256(html_content)
 
       // 检查是否重复（如果启用去重）
       if (!force) {

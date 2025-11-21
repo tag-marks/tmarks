@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Camera, ExternalLink, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
@@ -14,27 +14,13 @@ interface Snapshot {
 interface SnapshotViewerProps {
   bookmarkId: string;
   bookmarkTitle: string;
+  snapshotCount?: number; // 从书签数据中传入，避免额外请求
 }
 
-export function SnapshotViewer({ bookmarkId, bookmarkTitle }: SnapshotViewerProps) {
+export function SnapshotViewer({ bookmarkId, bookmarkTitle, snapshotCount = 0 }: SnapshotViewerProps) {
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
-  const [snapshotCount, setSnapshotCount] = useState(0);
-
-  // 预加载快照数量
-  useEffect(() => {
-    const loadCount = async () => {
-      try {
-        const response = await fetch(`/api/v1/bookmarks/${bookmarkId}/snapshots`);
-        const data = await response.json();
-        setSnapshotCount(data.snapshots?.length || 0);
-      } catch (error) {
-        console.error('Failed to load snapshot count:', error);
-      }
-    };
-    loadCount();
-  }, [bookmarkId]);
 
   const loadSnapshots = async () => {
     setIsLoading(true);
