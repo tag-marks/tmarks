@@ -243,13 +243,33 @@ export const onRequestGet: PagesFunction<Env, string, AuthContext>[] = [
           archived_bookmarks: (summary?.archived_bookmarks as number) || 0,
           public_bookmarks: (summary?.public_bookmarks as number) || 0,
         },
-        top_bookmarks: topBookmarks.results as any[],
-        top_tags: topTags.results as any[],
-        top_domains: topDomains.results as any[],
-        recent_clicks: recentClicks.results as any[],
+        top_bookmarks: (topBookmarks.results || []) as Array<{
+          id: string
+          title: string
+          url: string
+          click_count: number
+          last_clicked_at: string | null
+        }>,
+        top_tags: (topTags.results || []) as Array<{
+          id: string
+          name: string
+          color: string | null
+          click_count: number
+          bookmark_count: number
+        }>,
+        top_domains: (topDomains.results || []) as Array<{
+          domain: string
+          count: number
+        }>,
+        recent_clicks: (recentClicks.results || []) as Array<{
+          id: string
+          title: string
+          url: string
+          last_clicked_at: string
+        }>,
         trends: {
-          bookmarks: bookmarkTrends.results as any[],
-          clicks: clickTrends.results as any[],
+          bookmarks: (bookmarkTrends.results || []) as Array<{ date: string; count: number }>,
+          clicks: (clickTrends.results || []) as Array<{ date: string; count: number }>,
         },
       }
 

@@ -12,7 +12,7 @@ import type { CacheStrategyType, QueryParams } from './types'
 export function generateCacheKey(
   type: CacheStrategyType,
   userId: string,
-  params?: QueryParams | Record<string, any>
+  params?: QueryParams | Record<string, unknown>
 ): string {
   const parts: string[] = []
 

@@ -5,11 +5,7 @@ import { useToastStore } from '@/stores/toastStore'
 import { InfoBox } from '../InfoBox'
 import { apiClient } from '@/lib/api-client'
 
-interface BasicSettingsTabProps {
-    // 不再需要 preferences 和 onUpdate
-}
-
-export function BasicSettingsTab({}: BasicSettingsTabProps) {
+export function BasicSettingsTab() {
     const { user } = useAuthStore()
     const { addToast } = useToastStore()
     
@@ -52,8 +48,9 @@ export function BasicSettingsTab({}: BasicSettingsTabProps) {
             setCurrentPassword('')
             setNewPassword('')
             setConfirmPassword('')
-        } catch (error: any) {
-            addToast('error', error.message || '密码修改失败')
+        } catch (error) {
+            const message = error instanceof Error ? error.message : '密码修改失败'
+            addToast('error', message)
         } finally {
             setIsChangingPassword(false)
         }

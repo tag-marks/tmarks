@@ -204,21 +204,26 @@ export const onRequestGet: PagesFunction<Env, RouteParams, AuthContext>[] = [
       }
 
       // 一次性获取所有书签的快照数量
-      let snapshotCounts = new Map<string, number>()
+      const snapshotCounts = new Map<string, number>()
       
       if (bookmarkIds.length > 0) {
-        const placeholders = bookmarkIds.map(() => '?').join(',')
-        const { results: countResults } = await context.env.DB.prepare(
-          `SELECT bookmark_id, COUNT(*) as count
-           FROM bookmark_snapshots
-           WHERE bookmark_id IN (${placeholders})
-           GROUP BY bookmark_id`
-        )
-          .bind(...bookmarkIds)
-          .all<{ bookmark_id: string; count: number }>()
+        try {
+          const placeholders = bookmarkIds.map(() => '?').join(',')
+          const { results: countResults } = await context.env.DB.prepare(
+            `SELECT bookmark_id, COUNT(*) as count
+             FROM bookmark_snapshots
+             WHERE bookmark_id IN (${placeholders})
+             GROUP BY bookmark_id`
+          )
+            .bind(...bookmarkIds)
+            .all<{ bookmark_id: string; count: number }>()
 
-        for (const row of countResults || []) {
-          snapshotCounts.set(row.bookmark_id, row.count)
+          for (const row of countResults || []) {
+            snapshotCounts.set(row.bookmark_id, row.count)
+          }
+        } catch (snapshotError) {
+          // 如果快照表不存在，忽略错误（向后兼容）
+          console.warn('Failed to fetch snapshot counts (table may not exist):', snapshotError)
         }
       }
 

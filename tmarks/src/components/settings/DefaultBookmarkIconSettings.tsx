@@ -1,4 +1,5 @@
-import { DEFAULT_ICON_OPTIONS, DefaultBookmarkIconComponent } from '@/components/bookmarks/DefaultBookmarkIcon'
+import { DefaultBookmarkIconComponent } from '@/components/bookmarks/DefaultBookmarkIcon'
+import { DEFAULT_ICON_OPTIONS } from '@/components/bookmarks/defaultIconOptions'
 import type { DefaultBookmarkIcon } from '@/lib/types'
 
 interface DefaultBookmarkIconSettingsProps {

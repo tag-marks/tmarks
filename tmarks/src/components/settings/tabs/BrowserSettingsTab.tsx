@@ -3,7 +3,9 @@ import { InfoBox } from '../InfoBox'
 
 export function BrowserSettingsTab() {
 
-  const handleDownload = (browser: 'chrome' | 'firefox' | 'edge' | 'opera' | 'brave' | '360' | 'qq' | 'sogou') => {
+  type BrowserType = 'chrome' | 'firefox' | 'edge' | 'opera' | 'brave' | '360' | 'qq' | 'sogou'
+  
+  const handleDownload = (browser: BrowserType) => {
     const link = document.createElement('a')
     link.href = `/extensions/tmarks-extension-${browser}.zip`
     link.download = `tmarks-extension-${browser}.zip`
@@ -109,7 +111,7 @@ export function BrowserSettingsTab() {
           {browsers.map((browser) => (
             <button
               key={browser.id}
-              onClick={() => handleDownload(browser.id as any)}
+              onClick={() => handleDownload(browser.id as BrowserType)}
               className={`p-3 sm:p-4 rounded-xl border-2 border-border hover:border-primary/50 transition-all text-center group ${browser.color}`}
             >
               <div className="mx-auto mb-1 sm:mb-2 flex justify-center">

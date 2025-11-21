@@ -206,10 +206,15 @@ export function BookmarksPage() {
     return () => clearTimeout(timer)
   }, [searchKeyword])
 
-  // 初始化视图模式和排序方式
+  // 初始化视图模式和排序方式 - 优化：立即从localStorage读取，不等待API
   useEffect(() => {
+    // 立即从localStorage读取，避免等待API
+    const storedMode = getStoredViewMode()
+    if (storedMode && !preferences) {
+      setViewMode(storedMode)
+    }
+
     if (preferences?.view_mode && isValidViewMode(preferences.view_mode)) {
-      const storedMode = getStoredViewMode()
       const storedUpdatedAt = getStoredViewModeUpdatedAt()
       const serverUpdatedAt = preferences.updated_at ? new Date(preferences.updated_at).getTime() : 0
 

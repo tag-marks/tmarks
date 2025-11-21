@@ -46,7 +46,7 @@ export const onRequestPost: PagesFunction<Env, RouteParams, AuthContext>[] = [
         return notFound('Bookmark not found')
       }
 
-      let toDelete: any[] = []
+      let toDelete: Array<{ id: string; r2_key: string; file_size: number }> = []
 
       // 按保留数量清理
       if (keep_count !== undefined && keep_count >= 0) {

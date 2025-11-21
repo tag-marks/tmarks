@@ -65,48 +65,8 @@ export function useCreateBookmark() {
 
   return useMutation({
     mutationFn: (data: CreateBookmarkRequest) => bookmarksService.createBookmark(data),
-    onMutate: async (newBookmark) => {
-      // 取消正在进行的查询
-      await queryClient.cancelQueries({ queryKey: [BOOKMARKS_QUERY_KEY] })
-
-      // 保存之前的数据（用于回滚）
-      const previousBookmarks = queryClient.getQueryData([BOOKMARKS_QUERY_KEY])
-
-      // 乐观更新：立即添加新书签到缓存
-      queryClient.setQueryData([BOOKMARKS_QUERY_KEY, undefined], (old: any) => {
-        if (!old) return old
-        
-        // 创建临时书签对象
-        const tempBookmark = {
-          id: `temp-${Date.now()}`,
-          ...newBookmark,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          is_pinned: newBookmark.is_pinned || false,
-          is_archived: newBookmark.is_archived || false,
-          is_public: newBookmark.is_public || false,
-          click_count: 0,
-          last_clicked_at: null,
-          deleted_at: null,
-          tags: [],
-        }
-
-        return {
-          ...old,
-          bookmarks: [tempBookmark, ...(old.bookmarks || [])],
-        }
-      })
-
-      return { previousBookmarks }
-    },
-    onError: (_err, _newBookmark, context) => {
-      // 失败时回滚
-      if (context?.previousBookmarks) {
-        queryClient.setQueryData([BOOKMARKS_QUERY_KEY], context.previousBookmarks)
-      }
-    },
     onSuccess: async () => {
-      // 成功后刷新数据
+      // 成功后刷新所有书签查询
       try {
         await queryClient.invalidateQueries({ queryKey: [BOOKMARKS_QUERY_KEY] })
       } catch (error) {

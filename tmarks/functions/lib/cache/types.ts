@@ -56,7 +56,7 @@ export interface CacheConfig {
 /**
  * 缓存条目
  */
-export interface CacheEntry<T = any> {
+export interface CacheEntry<T = unknown> {
   data: T
   expires: number  // 时间戳
 }

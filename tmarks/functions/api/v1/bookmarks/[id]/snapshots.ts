@@ -6,7 +6,7 @@
 
 import type { PagesFunction } from '@cloudflare/workers-types'
 import type { Env } from '../../../../lib/types'
-import { success, badRequest, notFound, internalError, forbidden } from '../../../../lib/response'
+import { success, badRequest, notFound, internalError } from '../../../../lib/response'
 import { requireAuth, AuthContext } from '../../../../middleware/auth'
 
 // 生成 nanoid 风格的短 ID（21 字符）

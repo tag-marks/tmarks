@@ -22,7 +22,7 @@ export function AppShell() {
   // 切换按钮点击处理
   const handleToggleView = () => {
     if (isOnTabGroupsPage) {
-      navigate('/bookmarks')
+      navigate('/')
     } else {
       navigate('/tab')
     }

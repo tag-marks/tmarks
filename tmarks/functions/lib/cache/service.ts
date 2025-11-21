@@ -164,7 +164,7 @@ export class CacheService {
   /**
    * 判断是否应该缓存
    */
-  shouldCache(type: CacheStrategyType, params?: any): boolean {
+  shouldCache(type: CacheStrategyType, params?: Record<string, unknown>): boolean {
     if (!this.isEnabled(type)) {
       return false
     }

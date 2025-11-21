@@ -71,7 +71,7 @@ export function BookmarkStatisticsPage({ embedded = false }: BookmarkStatisticsP
         start.setHours(0, 0, 0, 0)
         end.setHours(23, 59, 59, 999)
         break
-      case 'week':
+      case 'week': {
         // 当周（周一到周日）
         const day = start.getDay()
         const diff = start.getDate() - day + (day === 0 ? -6 : 1)
@@ -80,6 +80,7 @@ export function BookmarkStatisticsPage({ embedded = false }: BookmarkStatisticsP
         end.setDate(start.getDate() + 6)
         end.setHours(23, 59, 59, 999)
         break
+      }
       case 'month':
         // 当月
         start.setDate(1)
@@ -159,16 +160,16 @@ export function BookmarkStatisticsPage({ embedded = false }: BookmarkStatisticsP
     const start = new Date(range.startDate)
     const end = new Date(range.endDate)
 
-    switch (granularity) {
-      case 'day':
-        return start.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })
-      case 'week':
-        return `${start.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })}`
-      case 'month':
-        return start.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long' })
-      case 'year':
-        return start.getFullYear() + ' 年'
+    if (granularity === 'day') {
+      return start.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })
     }
+    if (granularity === 'week') {
+      return `${start.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })}`
+    }
+    if (granularity === 'month') {
+      return start.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long' })
+    }
+    return start.getFullYear() + ' 年'
   }
 
   const formatDate = (dateString: string) => {
