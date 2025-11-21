@@ -1,6 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { CheckCircle } from 'lucide-react'
 import { TagSidebar } from '@/components/tags/TagSidebar'
 import { BookmarkListContainer } from '@/components/bookmarks/BookmarkListContainer'
 import { BookmarkForm } from '@/components/bookmarks/BookmarkForm'
@@ -399,29 +398,30 @@ export function BookmarksPage() {
 
 
 
-  const toggleVisibilityMenu = () => {
-    setIsVisibilityMenuOpen((prev) => {
-      const next = !prev
-      if (next) {
-        if (visibilityMenuButtonRef.current) {
-          const rect = visibilityMenuButtonRef.current.getBoundingClientRect()
-          const width = Math.max(rect.width + 100, 160)
-          const maxLeft = window.scrollX + window.innerWidth - width - 12
-          const left = Math.min(rect.left + window.scrollX, maxLeft)
-          setVisibilityMenuPosition({
-            top: rect.bottom + window.scrollY + 8,
-            left,
-            width,
-          })
-        }
-        setIsViewMenuOpen(false)
-        setViewMenuPosition(null)
-      } else {
-        setVisibilityMenuPosition(null)
-      }
-      return next
-    })
-  }
+  // Visibility menu toggle (currently not used in toolbar)
+  // const toggleVisibilityMenu = () => {
+  //   setIsVisibilityMenuOpen((prev) => {
+  //     const next = !prev
+  //     if (next) {
+  //       if (visibilityMenuButtonRef.current) {
+  //         const rect = visibilityMenuButtonRef.current.getBoundingClientRect()
+  //         const width = Math.max(rect.width + 100, 160)
+  //         const maxLeft = window.scrollX + window.innerWidth - width - 12
+  //         const left = Math.min(rect.left + window.scrollX, maxLeft)
+  //         setVisibilityMenuPosition({
+  //           top: rect.bottom + window.scrollY + 8,
+  //           left,
+  //           width,
+  //         })
+  //       }
+  //       setIsViewMenuOpen(false)
+  //       setViewMenuPosition(null)
+  //     } else {
+  //       setVisibilityMenuPosition(null)
+  //     }
+  //     return next
+  //   })
+  // }
 
   const toggleViewMenu = () => {
     setIsViewMenuOpen((prev) => {
@@ -646,9 +646,10 @@ export function BookmarksPage() {
                     </div>
                   </div>
 
-                  {/* 排序选择、视图切换和新增按钮 */}
-                  <div className="flex items-center gap-1.5 sm:gap-2 w-full sm:w-auto overflow-x-auto scrollbar-hide pb-1 sm:pb-0">
-                    <div className="relative flex-shrink-0">
+                  {/* 工具栏：左侧排序，右侧视图和新增 */}
+                  <div className="flex items-center justify-between gap-2 w-full">
+                    {/* 左侧：排序选择 */}
+                    <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
                       <SortSelector
                         value={sortBy}
                         onChange={handleSortByChange}
@@ -656,49 +657,13 @@ export function BookmarksPage() {
                       />
                     </div>
 
+                    {/* 右侧：视图切换和新增按钮 */}
                     <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-                      <div className="relative">
-                        <button
-                          ref={visibilityMenuButtonRef}
-                          onClick={toggleVisibilityMenu}
-                          className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center transition-all shadow-float touch-manipulation flex-shrink-0 ${visibilityFilter === 'all'
-                            ? 'bg-muted text-foreground hover:bg-muted/80'
-                            : visibilityFilter === 'public'
-                              ? 'bg-success/10 text-success hover:bg-success/20'
-                              : 'bg-warning/10 text-warning hover:bg-warning/20'
-                            }`}
-                          title={`${VISIBILITY_LABELS[visibilityFilter]}筛选`}
-                          aria-label={`${VISIBILITY_LABELS[visibilityFilter]}筛选`}
-                          type="button"
-                        >
-                          <VisibilityIcon filter={visibilityFilter} />
-                        </button>
-                      </div>
-
-                      {/* 批量操作按钮 */}
-                      <button
-                        onClick={() => {
-                          setBatchMode(!batchMode)
-                          if (batchMode) {
-                            setSelectedIds([])
-                          }
-                        }}
-                        className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center transition-all shadow-float touch-manipulation flex-shrink-0 ${batchMode
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted text-foreground hover:bg-muted/80'
-                          }`}
-                        title={batchMode ? '退出批量操作' : '批量操作'}
-                        aria-label={batchMode ? '退出批量操作' : '批量操作'}
-                        type="button"
-                      >
-                        <CheckCircle className="w-5 h-5" />
-                      </button>
-
                       <div className="relative">
                         <button
                           ref={viewMenuButtonRef}
                           onClick={toggleViewMenu}
-                          className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center transition-all shadow-float bg-muted text-foreground hover:bg-muted/80 touch-manipulation flex-shrink-0"
+                          className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center transition-all shadow-float bg-muted text-foreground hover:bg-muted/80 touch-manipulation"
                           title="切换视图"
                           aria-label="切换视图"
                           type="button"
@@ -709,7 +674,7 @@ export function BookmarksPage() {
 
                       <button
                         onClick={() => handleOpenForm()}
-                        className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-br from-primary to-secondary text-primary-content flex items-center justify-center shadow-float hover:shadow-xl transition-all hover:scale-105 active:scale-95 touch-manipulation flex-shrink-0"
+                        className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-br from-primary to-secondary text-primary-content flex items-center justify-center shadow-float hover:shadow-xl transition-all hover:scale-105 active:scale-95 touch-manipulation"
                         title="新增书签"
                         aria-label="新增书签"
                         type="button"
