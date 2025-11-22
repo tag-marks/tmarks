@@ -50,13 +50,51 @@ export const onRequestGet: PagesFunction<Env, RouteParams, ApiKeyAuthContext>[] 
         return notFound('Snapshot file not found')
       }
 
-      // 直接读取 HTML 内容（不压缩）
-      const htmlContent = await r2Object.text()
+      // 直接读取 HTML 内容
+      let htmlContent = await r2Object.text()
+      
+      // 统计 data URL 的数量（用于调试）
+      const dataUrlCount = (htmlContent.match(/src="data:/g) || []).length
+      const htmlSize = new Blob([htmlContent]).size
+      console.log(`[Snapshot API] Retrieved from R2: ${(htmlSize / 1024).toFixed(1)}KB, data URLs: ${dataUrlCount}`)
+
+      // 注入宽松的 CSP meta 标签到 HTML head 中（覆盖任何默认设置）
+      const cspMetaTag = '<meta http-equiv="Content-Security-Policy" content="default-src * \'unsafe-inline\' \'unsafe-eval\' data: blob:; img-src * data: blob:; font-src * data:; style-src * \'unsafe-inline\'; script-src * \'unsafe-inline\' \'unsafe-eval\'; frame-src *; connect-src *;">';
+      if (htmlContent.includes('<head>')) {
+        htmlContent = htmlContent.replace('<head>', `<head>${cspMetaTag}`);
+        console.log(`[Snapshot API] Injected CSP meta tag`);
+      } else if (htmlContent.includes('<HEAD>')) {
+        htmlContent = htmlContent.replace('<HEAD>', `<HEAD>${cspMetaTag}`);
+        console.log(`[Snapshot API] Injected CSP meta tag`);
+      }
+
+      // 检查是否是 V2 格式（包含 /api/snapshot-images/ 路径）
+      const isV2 = htmlContent.includes('/api/snapshot-images/')
+      
+      if (isV2) {
+        const version = (snapshot as any).version || 1
+        const baseUrl = new URL(context.request.url).origin
+        
+        // 处理图片 URL：规范化所有图片 URL，确保参数正确
+        let replacedCount = 0
+        htmlContent = htmlContent.replace(
+          /\/api\/snapshot-images\/([a-zA-Z0-9._-]+?)(?:\?[^"\s)]*)?(?=["\s)]|$)/g,
+          (match, hash) => {
+            replacedCount++
+            // 只替换路径部分，不包含域名（避免重复）
+            return `/api/snapshot-images/${hash}?u=${userId}&b=${bookmarkId}&v=${version}`;
+          }
+        )
+        console.log(`[Snapshot API] V2 format detected, normalized ${replacedCount} image URLs`)
+      }
 
       return new Response(htmlContent, {
         headers: {
           'Content-Type': 'text/html; charset=utf-8',
           'Cache-Control': 'public, max-age=3600',
+          'X-Content-Type-Options': 'nosniff',
+          // 放宽 CSP 以允许加载快照中的所有资源（用户自己保存的内容）
+          'Content-Security-Policy': "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; img-src * data: blob:; font-src * data:; style-src * 'unsafe-inline'; script-src * 'unsafe-inline' 'unsafe-eval'; frame-src *; connect-src *;",
         },
       })
     } catch (error) {

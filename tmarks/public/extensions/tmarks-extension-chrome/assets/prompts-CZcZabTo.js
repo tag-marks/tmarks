@@ -1,22 +1,22 @@
-const T="modulepreload",h=function(c){return"/"+c},g={},w=function(o,s,u){let a=Promise.resolve();if(s&&s.length>0){let f=function(e){return Promise.all(e.map(i=>Promise.resolve(i).then(l=>({status:"fulfilled",value:l}),l=>({status:"rejected",reason:l}))))};document.getElementsByTagName("link");const r=document.querySelector("meta[property=csp-nonce]"),t=r?.nonce||r?.getAttribute("nonce");a=f(s.map(e=>{if(e=h(e),e in g)return;g[e]=!0;const i=e.endsWith(".css"),l=i?'[rel="stylesheet"]':"";if(document.querySelector(`link[href="${e}"]${l}`))return;const n=document.createElement("link");if(n.rel=i?"stylesheet":T,i||(n.as="script"),n.crossOrigin="",n.href=e,t&&n.setAttribute("nonce",t),document.head.appendChild(n),i)return new Promise((m,p)=>{n.addEventListener("load",m),n.addEventListener("error",()=>p(new Error(`Unable to preload CSS for ${e}`)))})}))}function d(r){const t=new Event("vite:preloadError",{cancelable:!0});if(t.payload=r,window.dispatchEvent(t),!t.defaultPrevented)throw r}return a.then(r=>{for(const t of r||[])t.status==="rejected"&&d(t.reason);return o().catch(d)})};function N(c){const{page:o,context:s,options:u}=c;return`
+function a(i){const{page:e,context:t,options:n}=i;return`
 你是一个智能书签标签推荐助手。请根据网页内容和用户的已有标签库,推荐最相关的标签。
 
 网页信息:
-- 标题: ${o.title}
-- URL: ${o.url}
-- 描述: ${o.description||"无"}
-- 内容摘要: ${o.content?.substring(0,500)||"无"}
+- 标题: ${e.title}
+- URL: ${e.url}
+- 描述: ${e.description||"无"}
+- 内容摘要: ${e.content?.substring(0,500)||"无"}
 
-已有标签库 (${s.existingTags.length} 个):
-${s.existingTags.slice(0,100).join(", ")}
+已有标签库 (${t.existingTags.length} 个):
+${t.existingTags.slice(0,100).join(", ")}
 
 最近书签参考:
-${s.recentBookmarks.slice(0,10).map(a=>`- ${a.title} [${a.tags.join(", ")}]`).join(`
+${t.recentBookmarks.slice(0,10).map(s=>`- ${s.title} [${s.tags.join(", ")}]`).join(`
 `)}
 
 要求:
-1. 推荐 ${u.maxTags} 个最相关的标签
-2. ${u.preferExisting?"优先":"可以"}使用已有标签
+1. 推荐 ${n.maxTags} 个最相关的标签
+2. ${n.preferExisting?"优先":"可以"}使用已有标签
 3. 标签应该简洁(1-3个字)、准确、通用性强
 4. 如果标题或描述是英文或其他外语，请将其翻译成中文
 5. **极其重要 - 必须严格执行**: 标注每个标签是否为新标签
@@ -30,7 +30,7 @@ ${s.recentBookmarks.slice(0,10).map(a=>`- ${a.title} [${a.tags.join(", ")}]`).jo
    - 不得输出思考过程、reasoning_content、警告或其它键
    - 如无法满足要求，请返回 {"suggestedTags": [], "translatedTitle": null, "translatedDescription": null}
 7. 只返回JSON，不要任何其他内容
-  `.trim()}const $=`你是一个专业的书签管理助手。请根据网页信息为用户推荐最合适的标签。
+  `.trim()}const l=`你是一个专业的书签管理助手。请根据网页信息为用户推荐最合适的标签。
 
 网页信息：
 - 标题：{title}
@@ -69,4 +69,4 @@ JSON 输出要求：
 * 必须输出且仅输出一个合法 JSON 对象，不允许附加任何解释、reasoning 内容或额外键
 * 禁止输出 Markdown、换行提示、警告或其他文本
 * 如无法生成有效结果，请返回 {"suggestedTags": [], "translatedTitle": null, "translatedDescription": null}
-* 标签语言不限，在没有合适标签时，可推荐更为合适的新标签`;export{$ as D,w as _,N as b};
+* 标签语言不限，在没有合适标签时，可推荐更为合适的新标签`;export{l as D,a as b};

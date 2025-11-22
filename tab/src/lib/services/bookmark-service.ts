@@ -8,46 +8,54 @@ export class BookmarkService {
    * Save bookmark to remote and local cache
    */
   async saveBookmark(bookmark: BookmarkInput): Promise<SaveResult> {
+    let bookmarkId: string | undefined;
+    let isExisting = false;
+
     try {
       // 1. Save to remote API
       const result = await bookmarkAPI.addBookmark(bookmark);
+      bookmarkId = result.id;
+      isExisting = result.isExisting || false;
 
-      // 2. Save to local cache
-      await db.bookmarks.add({
-        url: bookmark.url,
-        title: bookmark.title,
-        description: bookmark.description,
-        tags: bookmark.tags,
-        createdAt: Date.now(),
-        remoteId: result.id,
-        isPublic: bookmark.isPublic ?? false
-      });
+      // If bookmark exists, return it for the dialog
+      if (isExisting && result.existingBookmark) {
+        return {
+          success: true,
+          existingBookmark: {
+            ...result.existingBookmark,
+            needsDialog: true
+          },
+          message: '书签已存在'
+        };
+      }
 
-      // 3. Update tag usage counts
-      await this.updateTagCounts(bookmark.tags);
+      // 2. Save to local cache (only for new bookmarks)
+      if (!isExisting) {
+        await db.bookmarks.add({
+          url: bookmark.url,
+          title: bookmark.title,
+          description: bookmark.description,
+          tags: bookmark.tags,
+          createdAt: Date.now(),
+          remoteId: result.id,
+          isPublic: bookmark.isPublic ?? false
+        });
 
-      // 4. Update in-memory context cache for AI
-      tagRecommender.updateContextWithBookmark({
-        title: bookmark.title,
-        tags: bookmark.tags
-      });
+        // 3. Update tag usage counts
+        await this.updateTagCounts(bookmark.tags);
 
-      return {
-        success: true,
-        bookmarkId: result.id
-      };
+        // 4. Update in-memory context cache for AI
+        tagRecommender.updateContextWithBookmark({
+          title: bookmark.title,
+          tags: bookmark.tags
+        });
+      } else {
+        console.log('[BookmarkService] Bookmark already exists, skipping cache update');
+      }
+
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.error('[BookmarkService] Failed to save bookmark:', errorMessage);
-
-      // Check if it's a duplicate URL error
-      if (errorMessage.includes('URL already exists')) {
-        return {
-          success: false,
-          error: '该网址已经被收藏过了',
-          message: '该网址已经被收藏过了'
-        };
-      }
 
       // Check if it's a network error
       if (errorMessage.includes('Network')) {
@@ -60,9 +68,80 @@ export class BookmarkService {
           message: '已暂存,将在网络恢复后同步'
         };
       }
-
+      
+      // For other errors, throw
       throw error;
     }
+
+    // 5. Create snapshot if requested (works for both new and existing bookmarks)
+    if (bookmark.createSnapshot && bookmarkId) {
+      try {
+        console.log('[BookmarkService] Creating snapshot (V2)...');
+        
+        // Get the current tab
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (tab && tab.id) {
+          // Capture page using V2 method (separate images)
+          let captureResult: { html: string; images: any[] };
+          try {
+            const capturePromise = chrome.tabs.sendMessage(tab.id, {
+              type: 'CAPTURE_PAGE_V2',
+              options: {
+                inlineCSS: true,
+                extractImages: true,
+                inlineFonts: false,
+                removeScripts: true,
+                removeHiddenElements: false,
+                maxImageSize: 100 * 1024 * 1024, // 提高到 100MB
+                timeout: 30000
+              }
+            });
+            
+            const timeoutPromise = new Promise((_, reject) => {
+              setTimeout(() => reject(new Error('Capture timeout')), 35000);
+            });
+            
+            const response = await Promise.race([capturePromise, timeoutPromise]) as any;
+            
+            if (response.success) {
+              captureResult = response.data;
+              console.log(`[BookmarkService] Captured (V2): HTML ${(captureResult.html.length / 1024).toFixed(1)}KB, ${captureResult.images.length} images`);
+            } else {
+              throw new Error(response.error || 'Capture failed');
+            }
+          } catch (error) {
+            console.error('[BookmarkService] V2 capture failed:', error);
+            throw error;
+          }
+          
+          // Prepare images for upload
+          const images = captureResult.images.map((img: any) => ({
+            hash: img.hash,
+            data: img.data, // base64
+            type: img.type,
+          }));
+
+          // Create snapshot via V2 API
+          await bookmarkAPI.createSnapshotV2(bookmarkId, {
+            html_content: captureResult.html,
+            title: bookmark.title,
+            url: bookmark.url,
+            images,
+          });
+          
+          console.log('[BookmarkService] Snapshot V2 created successfully, images:', images.length)
+        }
+      } catch (snapshotError) {
+        console.error('[BookmarkService] Failed to create snapshot:', snapshotError);
+        // Don't fail the whole operation if snapshot creation fails
+      }
+    }
+
+    return {
+      success: true,
+      bookmarkId: bookmarkId,
+      message: isExisting ? '书签已存在，已为其创建新快照' : undefined
+    };
   }
 
   /**

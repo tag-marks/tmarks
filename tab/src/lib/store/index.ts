@@ -43,6 +43,9 @@ interface AppState {
   successMessage: string | null;
   setSuccessMessage: (message: string | null) => void;
 
+  loadingMessage: string | null;
+  setLoadingMessage: (message: string | null) => void;
+
   lastRecommendationSource: RecommendationResult['source'] | null;
   lastRecommendationMessage: string | null;
 
@@ -55,15 +58,24 @@ interface AppState {
   includeThumbnail: boolean;
   setIncludeThumbnail: (value: boolean) => void;
 
+  createSnapshot: boolean;
+  setCreateSnapshot: (value: boolean) => void;
+
   // Configuration
   config: StorageConfig | null;
   loadConfig: () => Promise<void>;
   saveConfig: (config: Partial<StorageConfig>) => Promise<void>;
 
+  // Bookmark exists dialog
+  existingBookmark: any | null;
+  setExistingBookmark: (bookmark: any | null) => void;
+
   // Actions
   extractPageInfo: () => Promise<void>;
   recommendTags: () => Promise<void>;
   saveBookmark: () => Promise<void>;
+  updateExistingBookmarkTags: (bookmarkId: string, tags: string[]) => Promise<void>;
+  createSnapshotForBookmark: (bookmarkId: string) => Promise<void>;
   syncCache: () => Promise<void>;
 }
 
@@ -78,12 +90,17 @@ export const useAppStore = create<AppState>((set, get) => ({
   isRecommending: false,
   error: null,
   successMessage: null,
+  loadingMessage: null,
   lastRecommendationSource: null,
   lastRecommendationMessage: null,
   lastSaveDurationMs: null,
   lastRecommendationDurationMs: null,
   isPublic: true,
   includeThumbnail: false,
+  createSnapshot: false,
+  existingBookmark: null,
+
+  setExistingBookmark: (bookmark) => set({ existingBookmark: bookmark }),
   config: null,
 
   // Setters
@@ -109,6 +126,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   setLoading: (loading) => set({ isLoading: loading }),
   setError: (error) => set({ error }),
   setSuccessMessage: (message) => set({ successMessage: message }),
+  setLoadingMessage: (message) => set({ loadingMessage: message }),
   setIsPublic: (value) => {
     const defaultVisibility: 'public' | 'private' = value ? 'public' : 'private';
     const state = get();
@@ -144,6 +162,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     });
   },
   setIncludeThumbnail: (value) => set({ includeThumbnail: value }),
+
+  setCreateSnapshot: (value) => set({ createSnapshot: value }),
 
   // Tag management
   toggleTag: (tagName) =>
@@ -318,7 +338,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   saveBookmark: async () => {
-    const { currentPage, selectedTags, isPublic, includeThumbnail } = get();
+    const { currentPage, selectedTags, isPublic, includeThumbnail, createSnapshot } = get();
 
     if (!currentPage) {
       set({ error: 'No page info available' });
@@ -346,7 +366,8 @@ export const useAppStore = create<AppState>((set, get) => ({
           description: currentPage.description,
           tags: selectedTags,
           thumbnail: includeThumbnail ? currentPage.thumbnail : undefined,
-          isPublic
+          isPublic,
+          createSnapshot
         }
       });
 
@@ -357,13 +378,23 @@ export const useAppStore = create<AppState>((set, get) => ({
 
       // Check if save was successful
       if (!result.success) {
-      set({
-        error:
-          `${result.message || result.error || '保存失败'}（耗时 ${formattedSeconds}s）`,
+        set({
+          error: `${result.message || result.error || '保存失败'}（耗时 ${formattedSeconds}s）`,
           isLoading: false,
           isSaving: false,
-        lastSaveDurationMs: elapsedMs
-      });
+          lastSaveDurationMs: elapsedMs
+        });
+        return;
+      }
+
+      // Check if bookmark already exists
+      if (result.existingBookmark) {
+        set({
+          existingBookmark: result.existingBookmark,
+          isLoading: false,
+          isSaving: false,
+          lastSaveDurationMs: elapsedMs
+        });
         return;
       }
 
@@ -421,6 +452,99 @@ export const useAppStore = create<AppState>((set, get) => ({
         isLoading: false,
         isSaving: false,
         lastSaveDurationMs: elapsedMs
+      });
+    }
+  },
+
+  updateExistingBookmarkTags: async (bookmarkId: string, tags: string[]) => {
+    try {
+      set({ isSaving: true, error: null });
+
+      console.log('[Store] 更新书签标签:', bookmarkId, tags);
+
+      // 发送更新请求到 background
+      const result = await sendMessage({
+        type: 'UPDATE_BOOKMARK_TAGS',
+        payload: {
+          bookmarkId,
+          tags  // 直接传标签名称，后端会自动处理
+        }
+      });
+
+      if (!result.success) {
+        throw new Error(result.error || '更新标签失败');
+      }
+
+      set({
+        successMessage: '✅ 标签已更新',
+        isSaving: false,
+        existingBookmark: null
+      });
+
+      chrome.notifications.create({
+        type: 'basic',
+        iconUrl: '/icons/icon-128.png',
+        title: 'AI 书签助手',
+        message: '标签已成功更新'
+      });
+
+      setTimeout(() => {
+        set({ successMessage: null });
+      }, 2000);
+    } catch (error) {
+      console.error('Failed to update tags:', error);
+      set({
+        error: error instanceof Error ? error.message : 'Failed to update tags',
+        isSaving: false
+      });
+    }
+  },
+
+  createSnapshotForBookmark: async (bookmarkId: string) => {
+    const { currentPage } = get();
+    if (!currentPage) return;
+
+    try {
+      set({ isSaving: true, error: null, loadingMessage: '正在捕获页面内容...', successMessage: null });
+
+      // Get the current tab's HTML content
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tab && tab.id) {
+        // sendMessage returns response.data directly (not the whole response object)
+        await sendMessage({
+          type: 'CREATE_SNAPSHOT',
+          payload: {
+            bookmarkId,
+            title: currentPage.title,
+            url: currentPage.url
+          }
+        });
+
+        // If we reach here, it means success (sendMessage throws on error)
+        set({
+          successMessage: '快照已创建',
+          loadingMessage: null,
+          isSaving: false,
+          existingBookmark: null
+        });
+
+        chrome.notifications.create({
+          type: 'basic',
+          iconUrl: '/icons/icon-128.png',
+          title: 'AI 书签助手',
+          message: '快照已成功创建'
+        });
+
+        setTimeout(() => {
+          set({ successMessage: null });
+        }, 3000); // 增加到3秒，让用户有时间看到成功消息
+      }
+    } catch (error) {
+      console.error('Failed to create snapshot:', error);
+      set({
+        error: error instanceof Error ? error.message : 'Failed to create snapshot',
+        loadingMessage: null,
+        isSaving: false
       });
     }
   },

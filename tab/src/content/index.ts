@@ -446,6 +446,76 @@ if ((window as any).__AITMARKS_CONTENT_SCRIPT_LOADED__) {
         return true; // Keep message channel open for async response
       }
 
+      // SingleFile 页面捕获
+      if (message.type === 'CAPTURE_PAGE') {
+        (async () => {
+          try {
+            console.log('[ContentScript] Starting SingleFile capture...');
+            const { capturePage } = await import('./singlefile-capture');
+            const html = await capturePage(message.options || {});
+            const size = new Blob([html]).size;
+            
+            console.log(`[ContentScript] Capture successful: ${(size / 1024).toFixed(1)}KB`);
+            sendResponse({ success: true, html, size });
+          } catch (error) {
+            console.error('[ContentScript] Capture failed:', error);
+            sendResponse({
+              success: false,
+              error: error instanceof Error ? error.message : 'Unknown error'
+            });
+          }
+        })();
+        
+        return true; // Keep message channel open
+      }
+
+      // SingleFile V2 页面捕获（图片单独存储）
+      if (message.type === 'CAPTURE_PAGE_V2') {
+        (async () => {
+          try {
+            console.log('[ContentScript] Starting SingleFile V2 capture...');
+            const { capturePageV2 } = await import('./singlefile-capture-v2');
+            const result = await capturePageV2(message.options || {});
+            
+            // 将图片 blob 转换为 base64
+            const images = await Promise.all(
+              result.images.map(async (img) => {
+                const reader = new FileReader();
+                const base64 = await new Promise<string>((resolve, reject) => {
+                  reader.onloadend = () => resolve(reader.result as string);
+                  reader.onerror = reject;
+                  reader.readAsDataURL(img.blob);
+                });
+                
+                return {
+                  hash: img.hash,
+                  data: base64,
+                  type: img.blob.type,
+                  size: img.blob.size,
+                };
+              })
+            );
+            
+            console.log(`[ContentScript] V2 Capture successful: HTML ${(result.html.length / 1024).toFixed(1)}KB, ${images.length} images`);
+            sendResponse({ 
+              success: true, 
+              data: {
+                html: result.html,
+                images,
+              }
+            });
+          } catch (error) {
+            console.error('[ContentScript] V2 Capture failed:', error);
+            sendResponse({
+              success: false,
+              error: error instanceof Error ? error.message : 'Unknown error'
+            });
+          }
+        })();
+        
+        return true; // Keep message channel open
+      }
+
       // 未知消息类型
       console.warn('[ContentScript] Unknown message type:', message.type);
       return false;
