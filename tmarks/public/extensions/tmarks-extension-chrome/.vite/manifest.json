@@ -1,0 +1,94 @@
+{
+  "../../../../@crx/manifest": {
+    "file": "assets/crx-manifest.js-Lh1z63Ka.js",
+    "name": "crx-manifest.js",
+    "src": "../../../../@crx/manifest",
+    "isEntry": true
+  },
+  "_SuccessMessage-DmVAd18O.js": {
+    "file": "assets/SuccessMessage-DmVAd18O.js",
+    "name": "SuccessMessage",
+    "imports": [
+      "_index-DlUqGJ2w.js"
+    ]
+  },
+  "_index-C43BmuZN.js": {
+    "file": "assets/index-C43BmuZN.js",
+    "name": "index",
+    "isDynamicEntry": true,
+    "imports": [
+      "_prompts-Dz0Snwak.js",
+      "_index-DlUqGJ2w.js"
+    ]
+  },
+  "_index-DlUqGJ2w.js": {
+    "file": "assets/index-DlUqGJ2w.js",
+    "name": "index"
+  },
+  "_index-udhRfuq7.js": {
+    "file": "assets/index-udhRfuq7.js",
+    "name": "index"
+  },
+  "_prompts-Dz0Snwak.js": {
+    "file": "assets/prompts-Dz0Snwak.js",
+    "name": "prompts"
+  },
+  "src/background/index.ts": {
+    "file": "assets/index.ts-D3c40t0G.js",
+    "name": "index.ts",
+    "src": "src/background/index.ts",
+    "isEntry": true,
+    "imports": [
+      "_index-DlUqGJ2w.js",
+      "_index-C43BmuZN.js",
+      "_index-udhRfuq7.js",
+      "_prompts-Dz0Snwak.js"
+    ],
+    "dynamicImports": [
+      "src/lib/services/snapshot-service.ts"
+    ]
+  },
+  "src/content/index.ts": {
+    "file": "assets/index.ts--8KWUztq.js",
+    "name": "index.ts",
+    "src": "src/content/index.ts",
+    "isEntry": true
+  },
+  "src/lib/services/snapshot-service.ts": {
+    "file": "assets/snapshot-service-oiCI2-jo.js",
+    "name": "snapshot-service",
+    "src": "src/lib/services/snapshot-service.ts",
+    "isDynamicEntry": true
+  },
+  "src/options/index.html": {
+    "file": "assets/options-CkHSyrn-.js",
+    "name": "options",
+    "src": "src/options/index.html",
+    "isEntry": true,
+    "imports": [
+      "_SuccessMessage-DmVAd18O.js",
+      "_prompts-Dz0Snwak.js",
+      "_index-DlUqGJ2w.js"
+    ],
+    "dynamicImports": [
+      "_index-C43BmuZN.js"
+    ],
+    "css": [
+      "assets/options-C44K4N7y.css"
+    ]
+  },
+  "src/popup/index.html": {
+    "file": "assets/popup-BTdj4Koa.js",
+    "name": "popup",
+    "src": "src/popup/index.html",
+    "isEntry": true,
+    "imports": [
+      "_SuccessMessage-DmVAd18O.js",
+      "_index-DlUqGJ2w.js",
+      "_index-udhRfuq7.js"
+    ],
+    "css": [
+      "assets/popup-CxXb2iRZ.css"
+    ]
+  }
+}
