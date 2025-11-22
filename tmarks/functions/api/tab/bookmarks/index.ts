@@ -1,17 +1,17 @@
 /**
  * 对外 API - 书签管理
- * 路径: /api/bookmarks
+ * 路径: /api/tab/bookmarks
  * 认证: API Key (X-API-Key header)
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'
-import type { Env, Bookmark, BookmarkRow, RouteParams, SQLParam } from '../../lib/types'
-import { success, badRequest, created, internalError } from '../../lib/response'
-import { requireApiKeyAuth, ApiKeyAuthContext } from '../../middleware/api-key-auth-pages'
-import { isValidUrl, sanitizeString } from '../../lib/validation'
-import { generateUUID } from '../../lib/crypto'
+import type { Env, Bookmark, BookmarkRow, RouteParams, SQLParam } from '../../../lib/types'
+import { success, badRequest, created, internalError } from '../../../lib/response'
+import { requireApiKeyAuth, ApiKeyAuthContext } from '../../../middleware/api-key-auth-pages'
+import { isValidUrl, sanitizeString } from '../../../lib/validation'
+import { generateUUID } from '../../../lib/crypto'
 import { normalizeBookmark } from './utils'
-import { invalidatePublicShareCache } from '../shared/cache'
+import { invalidatePublicShareCache } from '../../shared/cache'
 
 interface CreateBookmarkRequest {
   title: string
@@ -226,6 +226,15 @@ export const onRequestPost: PagesFunction<Env, RouteParams, ApiKeyAuthContext>[]
             .bind(existing.id)
             .all<{ id: string; name: string; color: string | null }>()
 
+          // 获取快照数量
+          const snapshotCountResult = await context.env.DB.prepare(
+            `SELECT COUNT(*) as count FROM bookmark_snapshots WHERE bookmark_id = ? AND user_id = ?`
+          )
+            .bind(existing.id, userId)
+            .first<{ count: number }>()
+
+          const snapshotCount = snapshotCountResult?.count || 0
+
           if (!bookmarkRow) {
             return internalError('Failed to retrieve bookmark')
           }
@@ -237,6 +246,8 @@ export const onRequestPost: PagesFunction<Env, RouteParams, ApiKeyAuthContext>[]
               bookmark: {
                 ...bookmark,
                 tags: tags || [],
+                snapshot_count: snapshotCount,
+                has_snapshot: snapshotCount > 0,
               },
             },
             {

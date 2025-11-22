@@ -1,46 +1,25 @@
 /**
  * 单个快照操作 API
- * 路径: /api/v1/bookmarks/:id/snapshots/:snapshotId
- * 认证: JWT Token
+ * 路径: /api/tab/bookmarks/:id/snapshots/:snapshotId
+ * 认证: API Key (X-API-Key header)
  */
 
 import type { PagesFunction } from '@cloudflare/workers-types'
 import type { Env } from '../../../../../lib/types'
-import { success, notFound, internalError, unauthorized } from '../../../../../lib/response'
-import { requireAuth, AuthContext } from '../../../../../middleware/auth'
-import { verifyJWT } from '../../../../../lib/jwt'
+import { success, notFound, internalError } from '../../../../../lib/response'
+import { requireApiKeyAuth, ApiKeyAuthContext } from '../../../../../middleware/api-key-auth-pages'
 
 interface RouteParams {
   id: string
   snapshotId: string
 }
 
-// GET /api/v1/bookmarks/:id/snapshots/:snapshotId - 获取快照
-export const onRequestGet: PagesFunction<Env, RouteParams>[] = [
+// GET /api/tab/bookmarks/:id/snapshots/:snapshotId - 获取快照
+export const onRequestGet: PagesFunction<Env, RouteParams, ApiKeyAuthContext>[] = [
+  requireApiKeyAuth('bookmarks.read'),
   async (context) => {
     try {
-      // 尝试从 header 或 URL 参数获取 token
-      let token = context.request.headers.get('Authorization')?.replace('Bearer ', '')
-      
-      if (!token) {
-        const url = new URL(context.request.url)
-        token = url.searchParams.get('token') || null
-      }
-
-      if (!token) {
-        return unauthorized('Missing authorization token')
-      }
-
-      // 验证 token 并获取 user_id
-      let userId: string
-      try {
-        const payload = await verifyJWT(token, context.env.JWT_SECRET)
-        userId = payload.sub
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'Invalid token'
-        return unauthorized(message)
-      }
-
+      const userId = context.data.user_id
       const { id: bookmarkId, snapshotId } = context.params
       const db = context.env.DB
       const bucket = context.env.SNAPSHOTS_BUCKET
@@ -87,9 +66,9 @@ export const onRequestGet: PagesFunction<Env, RouteParams>[] = [
   },
 ]
 
-// DELETE /api/v1/bookmarks/:id/snapshots/:snapshotId - 删除快照
-export const onRequestDelete: PagesFunction<Env, RouteParams, AuthContext>[] = [
-  requireAuth,
+// DELETE /api/tab/bookmarks/:id/snapshots/:snapshotId - 删除快照
+export const onRequestDelete: PagesFunction<Env, RouteParams, ApiKeyAuthContext>[] = [
+  requireApiKeyAuth('bookmarks.delete'),
   async (context) => {
     const userId = context.data.user_id
     const { id: bookmarkId, snapshotId } = context.params
