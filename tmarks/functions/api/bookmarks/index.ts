@@ -10,14 +10,16 @@ import { success, badRequest, created, internalError } from '../../lib/response'
 import { requireApiKeyAuth, ApiKeyAuthContext } from '../../middleware/api-key-auth-pages'
 import { isValidUrl, sanitizeString } from '../../lib/validation'
 import { generateUUID } from '../../lib/crypto'
-import { normalizeBookmark } from './utils'
+import { normalizeBookmark } from '../../lib/bookmark-utils'
 import { invalidatePublicShareCache } from '../shared/cache'
+import { uploadCoverImageToR2 } from '../../lib/image-upload'
 
 interface CreateBookmarkRequest {
   title: string
   url: string
   description?: string
   cover_image?: string
+  favicon?: string
   tag_ids?: string[]  // 兼容旧版：标签 ID 数组
   tags?: string[]     // 新版：标签名称数组（推荐）
   is_pinned?: boolean
@@ -195,7 +197,8 @@ export const onRequestPost: PagesFunction<Env, RouteParams, ApiKeyAuthContext>[]
       const title = sanitizeString(body.title, 500)
       const url = sanitizeString(body.url, 2000)
       const description = body.description ? sanitizeString(body.description, 1000) : null
-      const coverImage = body.cover_image ? sanitizeString(body.cover_image, 2000) : null
+      let coverImage = body.cover_image ? sanitizeString(body.cover_image, 2000) : null
+      const favicon = body.favicon ? sanitizeString(body.favicon, 2000) : null
 
       // 检查URL是否已存在（包括已删除的）
       const existing = await context.env.DB.prepare(
@@ -209,6 +212,28 @@ export const onRequestPost: PagesFunction<Env, RouteParams, ApiKeyAuthContext>[]
       const isPinned = body.is_pinned ? 1 : 0
       const isArchived = body.is_archived ? 1 : 0
       const isPublic = body.is_public ? 1 : 0
+
+      // 如果有封面图且配置了 R2 bucket，上传到 R2
+      let coverImageId: string | null = null
+      if (coverImage && context.env.SNAPSHOTS_BUCKET) {
+        // 生成临时 ID（如果是新书签）
+        const tempBookmarkId = existing?.id || generateUUID()
+        
+        const uploadResult = await uploadCoverImageToR2(
+          coverImage,
+          userId,
+          tempBookmarkId,
+          context.env.SNAPSHOTS_BUCKET,
+          context.env.DB
+        )
+
+        // 如果上传成功，使用 R2 URL 和 imageId
+        if (uploadResult.success && uploadResult.r2Url) {
+          coverImage = uploadResult.r2Url
+          coverImageId = uploadResult.imageId || null
+        }
+        // 如果上传失败，继续使用原始 URL（降级方案）
+      }
 
       if (existing) {
         if (!existing.deleted_at) {
@@ -250,7 +275,7 @@ export const onRequestPost: PagesFunction<Env, RouteParams, ApiKeyAuthContext>[]
         bookmarkId = existing.id
         await context.env.DB.prepare(
           `UPDATE bookmarks
-           SET title = ?, description = ?, cover_image = ?,
+           SET title = ?, description = ?, cover_image = ?, favicon = ?,
                is_pinned = ?, is_archived = ?, is_public = ?,
                deleted_at = NULL, updated_at = ?
            WHERE id = ?`
@@ -259,6 +284,7 @@ export const onRequestPost: PagesFunction<Env, RouteParams, ApiKeyAuthContext>[]
             title,
             description,
             coverImage,
+            favicon,
             isPinned,
             isArchived,
             isPublic,
@@ -274,8 +300,8 @@ export const onRequestPost: PagesFunction<Env, RouteParams, ApiKeyAuthContext>[]
         // 创建新书签
         bookmarkId = generateUUID()
         await context.env.DB.prepare(
-          `INSERT INTO bookmarks (id, user_id, title, url, description, cover_image, is_pinned, is_archived, is_public, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          `INSERT INTO bookmarks (id, user_id, title, url, description, cover_image, cover_image_id, favicon, is_pinned, is_archived, is_public, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
         )
           .bind(
             bookmarkId,
@@ -284,6 +310,8 @@ export const onRequestPost: PagesFunction<Env, RouteParams, ApiKeyAuthContext>[]
             url,
             description,
             coverImage,
+            coverImageId,
+            favicon,
             isPinned,
             isArchived,
             isPublic,
