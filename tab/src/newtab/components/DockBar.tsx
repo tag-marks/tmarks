@@ -72,7 +72,7 @@ function SortableBookmarkItem({
     >
       <a
         href={bookmark.url}
-        className="relative block w-11 h-11 rounded-xl bg-white/10 hover:bg-white/20 transition-all duration-200 overflow-hidden"
+        className="relative block w-11 h-11 rounded-xl bg-white/10 hover:bg-white/20 active:scale-90 transition-all duration-200 overflow-hidden"
         style={{
           transform: isHovered && !isDragging ? 'translateY(-8px) scale(1.15)' : 'translateY(0) scale(1)',
         }}
@@ -203,6 +203,7 @@ export function DockBar() {
 
   return (
     <div 
+      data-dock-bar="1"
       className={`fixed bottom-4 left-1/2 -translate-x-1/2 z-40 transition-opacity duration-300 ${
         isVisible ? 'opacity-100' : 'opacity-0'
       }`}

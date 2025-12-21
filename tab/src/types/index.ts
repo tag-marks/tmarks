@@ -73,6 +73,17 @@ export interface UserPreferences {
   defaultIncludeThumbnail: boolean; // 默认是否包含封面图
   defaultCreateSnapshot: boolean; // 默认是否创建快照
   tagTheme?: 'classic' | 'mono' | 'bw';
+
+  aiBookmarkClassifyScope?: 'newtab_root' | 'bookmarks_bar' | 'all';
+
+  // NewTab：Popup「保存到 NewTab」的文件夹 AI 推荐数量（10-20）
+  newtabFolderRecommendCount?: number;
+
+  // NewTab：是否启用“保存到 NewTab”的 AI 文件夹推荐
+  enableNewtabAI?: boolean;
+
+  enableNewtabFolderPrompt?: boolean;
+  newtabFolderPrompt?: string;
 }
 
 export interface AIConnectionInfo {
@@ -247,6 +258,11 @@ export type MessageType =
   | 'RECOMMEND_TAGS'
   | 'CREATE_SNAPSHOT'
   | 'SAVE_BOOKMARK'
+  | 'SAVE_TO_NEWTAB'
+  | 'IMPORT_ALL_BOOKMARKS_TO_NEWTAB'
+  | 'AI_ORGANIZE_NEWTAB_WORKSPACE'
+  | 'GET_NEWTAB_FOLDERS'
+  | 'RECOMMEND_NEWTAB_FOLDER'
   | 'SYNC_CACHE'
   | 'GET_CONFIG'
   | 'GET_EXISTING_TAGS'

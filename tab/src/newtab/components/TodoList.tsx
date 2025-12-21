@@ -66,7 +66,7 @@ export function TodoList() {
             />
             <button
               onClick={handleAdd}
-              className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
+              className="p-2 rounded-xl bg-white/10 hover:bg-white/20 transition-colors focus:outline-none focus:ring-2 focus:ring-white/20"
             >
               <Plus className="w-4 h-4 text-white/70" />
             </button>

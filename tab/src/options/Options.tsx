@@ -1,548 +1,77 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { useAppStore } from '@/lib/store';
-import { db } from '@/lib/db';
-import type { AIProvider, AIConnectionInfo } from '@/types';
+import { useMemo, useState } from 'react';
 import { ErrorMessage } from '@/components/ErrorMessage';
 import { SuccessMessage } from '@/components/SuccessMessage';
-import { DEFAULT_PROMPT_TEMPLATE } from '@/lib/constants/prompts';
 import { AIConfigSection } from './components/AIConfigSection';
 import { TMarksConfigSection } from './components/TMarksConfigSection';
 import { PreferencesSection } from './components/PreferencesSection';
 import { CacheStatusSection } from './components/CacheStatusSection';
-import { canFetchModels, fetchAvailableModels } from '@/lib/services/ai-models';
-import { applyTheme, applyThemeStyle, initThemeListener } from '@/lib/utils/themeManager';
+import { PresetModal } from './components/PresetModal';
+import { TMarksTagSection } from './components/TMarksTagSection';
+import { NewTabTagSection } from './components/NewTabTagSection';
+import { useOptionsForm } from './hooks/useOptionsForm';
 
 export function Options() {
-  const { config, loadConfig, saveConfig, syncCache, error, successMessage, isLoading, setError, setSuccessMessage } = useAppStore();
+  const {
+    error,
+    successMessage,
+    isLoading,
+    setError,
+    setSuccessMessage,
 
-  const [formData, setFormData] = useState({
-    theme: 'auto' as 'light' | 'dark' | 'auto',
-    themeStyle: 'default' as 'default' | 'bw' | 'tmarks',
-    aiProvider: 'openai' as AIProvider,
-    apiKey: '',
-    apiUrl: '',
-    aiModel: '',
-    bookmarkApiUrl: '',
-    bookmarkApiKey: '',
-    enableCustomPrompt: false,
-    customPrompt: DEFAULT_PROMPT_TEMPLATE,
-    maxSuggestedTags: 5,
-    defaultVisibility: 'public' as 'public' | 'private',
-    enableAI: true,
-    defaultIncludeThumbnail: true,
-    defaultCreateSnapshot: false,
-    tagTheme: 'classic' as 'classic' | 'mono' | 'bw'
-  });
+    formData,
+    setFormData,
 
-  const [stats, setStats] = useState({
-    tags: 0,
-    bookmarks: 0,
-    lastSync: 0
-  });
+    stats,
+    isTesting,
 
-  const [isTesting, setIsTesting] = useState(false);
-  const [availableModels, setAvailableModels] = useState<string[]>([]);
-  const [isFetchingModels, setIsFetchingModels] = useState(false);
-  const [modelFetchError, setModelFetchError] = useState<string | null>(null);
-  const [modelFetchNonce, setModelFetchNonce] = useState(0);
-  const lastModelFetchSignature = useRef<string | null>(null);
-  const [savedConnections, setSavedConnections] = useState<Partial<Record<AIProvider, AIConnectionInfo[]>>>({});
-  const [isPresetModalOpen, setIsPresetModalOpen] = useState(false);
-  const [presetLabel, setPresetLabel] = useState('');
-  const [isSavingPreset, setIsSavingPreset] = useState(false);
-  const [presetError, setPresetError] = useState<string | null>(null);
-  const MAX_SAVED_CONNECTIONS = 10;
-  const generateConnectionId = () => `${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
+    availableModels,
+    isFetchingModels,
+    modelFetchError,
+    modelFetchSupported,
 
-  const normalizeSavedConnections = (input?: Partial<Record<AIProvider, AIConnectionInfo[]>>) => {
-    const normalized: Partial<Record<AIProvider, AIConnectionInfo[]>> = {};
+    allSavedConnections,
 
-    if (!input) {
-      return normalized;
-    }
+    isPresetModalOpen,
+    presetLabel,
+    isSavingPreset,
+    presetError,
 
-    (Object.keys(input) as AIProvider[]).forEach(provider => {
-      const list = input[provider] || [];
-      normalized[provider] = Array.isArray(list)
-        ? list.slice(0, MAX_SAVED_CONNECTIONS).map(item => ({
-            ...item,
-            provider: item.provider || provider,
-            id: item.id || generateConnectionId()
-          }))
-        : [];
-    });
+    setPresetLabel,
 
-    return normalized;
-  };
+    handleProviderChange,
+    refreshModelOptions,
+    handleSave,
+    handleSync,
+    formatDate,
+    handleReset,
+    handleTestAPI,
 
-  const upsertSavedConnection = (
-    existing: Partial<Record<AIProvider, AIConnectionInfo[]>>,
-    provider: AIProvider,
-    connection: AIConnectionInfo
-  ): Partial<Record<AIProvider, AIConnectionInfo[]>> => {
-    const list = existing[provider] || [];
-    const normalizedUrl = (connection.apiUrl || '').trim();
-    const normalizedKey = (connection.apiKey || '').trim();
-    const normalizedModel = (connection.model || '').trim();
+    handleSaveConnectionPreset,
+    handleConfirmSaveConnectionPreset,
+    handleClosePresetModal,
+    handleApplySavedConnection,
+    handleDeleteSavedConnection,
+  } = useOptionsForm();
 
-    const newEntry: AIConnectionInfo = {
-      ...connection,
-      apiUrl: normalizedUrl || undefined,
-      apiKey: normalizedKey || undefined,
-      model: normalizedModel || undefined,
-      provider,
-      label: connection.label?.trim() || connection.label,
-      lastUsedAt: Date.now(),
-      id: connection.id || generateConnectionId()
-    };
+  type OptionsTab = 'ai' | 'tmarkstag' | 'newtabtag' | 'preferences' | 'tmarks';
+  const [activeTab, setActiveTab] = useState<OptionsTab>('ai');
 
-    const hasId = Boolean(connection.id);
-    const existingIndex = hasId ? list.findIndex(item => item.id && item.id === connection.id) : -1;
-    let updatedList: AIConnectionInfo[];
-
-    if (hasId && existingIndex >= 0) {
-      updatedList = [...list];
-      updatedList[existingIndex] = newEntry;
-    } else {
-      updatedList = [newEntry, ...list].slice(0, MAX_SAVED_CONNECTIONS);
-    }
-
-    return {
-      ...existing,
-      [provider]: updatedList
-    };
-  };
-
-  const handleSaveConnectionPreset = () => {
-    const trimmedKey = formData.apiKey.trim();
-    if (!trimmedKey) {
-      setError('请先填写 API Key 再保存配置');
-      return;
-    }
-
-    const defaultName = `配置 ${(savedConnections[formData.aiProvider]?.length || 0) + 1}`;
-    setPresetLabel(defaultName);
-    setPresetError(null);
-    setIsPresetModalOpen(true);
-  };
-
-  const handleConfirmSaveConnectionPreset = async () => {
-    const trimmedKey = formData.apiKey.trim();
-    if (!trimmedKey) {
-      setPresetError('请先填写 API Key 再保存配置');
-      return;
-    }
-
-    const trimmedLabel = presetLabel.trim();
-    if (!trimmedLabel) {
-      setPresetError('配置名称不能为空');
-      return;
-    }
-
-    if (!config) {
-      setError('配置尚未加载，稍后再试');
-      setIsPresetModalOpen(false);
-      return;
-    }
-
-    setIsSavingPreset(true);
-    setPresetError(null);
-
-    const connection: AIConnectionInfo = {
-      apiUrl: formData.apiUrl,
-      apiKey: trimmedKey,
-      model: formData.aiModel,
-      label: trimmedLabel,
-      provider: formData.aiProvider
-    };
-
-    const previous = savedConnections;
-    const updated = upsertSavedConnection(previous, formData.aiProvider, connection);
-    setSavedConnections(updated);
-
-    try {
-      await saveConfig({
-        aiConfig: {
-          ...config.aiConfig,
-          savedConnections: updated
-        }
-      });
-      setSuccessMessage(`已保存为「${trimmedLabel}」`);
-      setTimeout(() => setSuccessMessage(null), 2000);
-      setIsPresetModalOpen(false);
-    } catch (err) {
-      setSavedConnections(previous);
-      setPresetError(err instanceof Error ? err.message : '保存配置失败');
-    } finally {
-      setIsSavingPreset(false);
-    }
-  };
-
-  const handleClosePresetModal = () => {
-    if (isSavingPreset) {
-      return;
-    }
-    setIsPresetModalOpen(false);
-    setPresetError(null);
-  };
-
-  const removeSavedConnection = (
-    existing: Partial<Record<AIProvider, AIConnectionInfo[]>>,
-    provider: AIProvider,
-    target: AIConnectionInfo
-  ): Partial<Record<AIProvider, AIConnectionInfo[]>> => {
-    const list = existing[provider] || [];
-    const normalizedUrl = (target.apiUrl || '').trim();
-    const normalizedKey = (target.apiKey || '').trim();
-    const normalizedModel = (target.model || '').trim();
-    const filtered = list.filter(item => {
-      if (target.id && item.id) {
-        return item.id !== target.id;
-      }
-
-      return (
-        (item.apiUrl || '').trim() !== normalizedUrl ||
-        (item.apiKey || '').trim() !== normalizedKey ||
-        (item.model || '').trim() !== normalizedModel
-      );
-    });
-
-    const updated: Partial<Record<AIProvider, AIConnectionInfo[]>> = {
-      ...existing
-    };
-
-    if (filtered.length > 0) {
-      updated[provider] = filtered;
-    } else {
-      delete updated[provider];
-    }
-
-    return updated;
-  };
-
-  // Load config and stats on mount
-  useEffect(() => {
-    const init = async () => {
-      await loadConfig();
-      const dbStats = await db.getStats();
-      setStats(dbStats);
-    };
-
-    init();
-  }, []);
-
-  // Apply theme immediately based on current form state (no need to save first)
-  useEffect(() => {
-    applyTheme(formData.theme);
-    return initThemeListener(() => formData.theme);
-  }, [formData.theme]);
-
-  useEffect(() => {
-    applyThemeStyle(formData.themeStyle);
-  }, [formData.themeStyle]);
-
-  // Update form when config loads
-  useEffect(() => {
-    if (config) {
-      const currentProvider = config.aiConfig.provider;
-      const currentApiKey = config.aiConfig.apiKeys[currentProvider] || '';
-      const currentApiUrl = config.aiConfig.apiUrls?.[currentProvider] || '';
-
-      setFormData({
-        theme: config.preferences.theme ?? 'auto',
-        themeStyle: config.preferences.themeStyle ?? 'default',
-        aiProvider: currentProvider,
-        apiKey: currentApiKey,
-        apiUrl: currentApiUrl,
-        aiModel: config.aiConfig.model || '',
-        bookmarkApiUrl: config.bookmarkSite.apiUrl,
-        bookmarkApiKey: config.bookmarkSite.apiKey,
-        enableCustomPrompt: config.aiConfig.enableCustomPrompt || false,
-        customPrompt: config.aiConfig.customPrompt || formData.customPrompt,
-        maxSuggestedTags: config.preferences.maxSuggestedTags,
-        defaultVisibility: config.preferences.defaultVisibility,
-        enableAI: config.preferences.enableAI ?? true,
-        defaultIncludeThumbnail: config.preferences.defaultIncludeThumbnail ?? true,
-        defaultCreateSnapshot: config.preferences.defaultCreateSnapshot ?? false,
-        tagTheme: config.preferences.tagTheme ?? 'classic'
-      });
-      const normalizedSaved = normalizeSavedConnections(config.aiConfig.savedConnections);
-      setSavedConnections(normalizedSaved);
-    }
-  }, [config]);
-
-  // Update API key and URL when provider changes
-  const handleProviderChange = (newProvider: AIProvider) => {
-    const newApiKey = config?.aiConfig.apiKeys[newProvider] || '';
-    const newApiUrl = config?.aiConfig.apiUrls?.[newProvider] || '';
-    setFormData({
-      ...formData,
-      aiProvider: newProvider,
-      apiKey: newApiKey,
-      apiUrl: newApiUrl
-    });
-    setAvailableModels([]);
-    setModelFetchError(null);
-    lastModelFetchSignature.current = null;
-  };
-
-  useEffect(() => {
-    const supported = canFetchModels(formData.aiProvider, formData.apiUrl);
-    const trimmedKey = formData.apiKey.trim();
-
-    if (!supported || !trimmedKey) {
-      setAvailableModels([]);
-      setModelFetchError(null);
-      setIsFetchingModels(false);
-      lastModelFetchSignature.current = null;
-      return;
-    }
-
-    const signature = `${formData.aiProvider}|${(formData.apiUrl || '').trim()}|${trimmedKey}|${modelFetchNonce}`;
-
-    if (lastModelFetchSignature.current === signature) {
-      return;
-    }
-
-    let cancelled = false;
-    
-    const fetchModels = async () => {
-      setIsFetchingModels(true);
-      setModelFetchError(null);
-
-      try {
-        const models = await fetchAvailableModels(formData.aiProvider, trimmedKey, formData.apiUrl);
-        
-        if (cancelled) return;
-        
-        setAvailableModels(models);
-        setIsFetchingModels(false);
-        setModelFetchError(null);
-        lastModelFetchSignature.current = signature;
-        
-        // 只在没有选中模型时自动选择第一个
-        setFormData(prev => {
-          if (prev.aiModel) {
-            return prev;
-          }
-          return {
-            ...prev,
-            aiModel: models[0] || ''
-          };
-        });
-      } catch (error) {
-        if (cancelled) return;
-        
-        setAvailableModels([]);
-        setModelFetchError(error instanceof Error ? error.message : String(error));
-        setIsFetchingModels(false);
-        lastModelFetchSignature.current = signature;
-      }
-    };
-
-    fetchModels();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [formData.aiProvider, formData.apiUrl, formData.apiKey, modelFetchNonce]);
-
-  const refreshModelOptions = () => {
-    if (!canFetchModels(formData.aiProvider, formData.apiUrl) || !formData.apiKey.trim()) {
-      return;
-    }
-    lastModelFetchSignature.current = null;
-    setModelFetchNonce(prev => prev + 1);
-  };
-
-  const handleSave = async () => {
-    try {
-      await saveConfig({
-        aiConfig: {
-          provider: formData.aiProvider,
-          apiKeys: {
-            ...config?.aiConfig.apiKeys,
-            [formData.aiProvider]: formData.apiKey
-          },
-          apiUrls: {
-            ...config?.aiConfig.apiUrls,
-            [formData.aiProvider]: formData.apiUrl
-          },
-          model: formData.aiModel,
-          enableCustomPrompt: formData.enableCustomPrompt,
-          customPrompt: formData.customPrompt,
-          savedConnections
-        },
-        bookmarkSite: {
-          apiUrl: formData.bookmarkApiUrl,
-          apiKey: formData.bookmarkApiKey
-        },
-        preferences: {
-          theme: formData.theme,
-          themeStyle: formData.themeStyle,
-          autoSync: config?.preferences.autoSync ?? true,
-          syncInterval: config?.preferences.syncInterval ?? 24,
-          maxSuggestedTags: formData.maxSuggestedTags,
-          defaultVisibility: formData.defaultVisibility,
-          enableAI: formData.enableAI,
-          defaultIncludeThumbnail: formData.defaultIncludeThumbnail,
-          defaultCreateSnapshot: formData.defaultCreateSnapshot,
-          tagTheme: formData.tagTheme
-        }
-      });
-
-      setSuccessMessage('设置已保存!');
-      setTimeout(() => setSuccessMessage(null), 2000);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '保存失败');
-    }
-  };
-
-  const handleSync = async () => {
-    try {
-      await syncCache();
-      const dbStats = await db.getStats();
-      setStats(dbStats);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '同步失败');
-    }
-  };
-
-  const handleTestAPI = async () => {
-    try {
-      setIsTesting(true);
-      setError(null);
-
-      // Import AI provider
-      const { getAIProvider } = await import('@/lib/providers');
-      const provider = getAIProvider(formData.aiProvider);
-
-      // Create test request
-      const testRequest = {
-        page: {
-          title: 'Claude Code - AI 编程助手',
-          url: 'https://claude.ai',
-          description: 'Claude 是一个强大的 AI 编程助手',
-          content: 'Claude Code 是 Anthropic 推出的智能编程工具，支持多种编程语言和框架。'
-        },
-        context: {
-          existingTags: ['开发工具', 'AI', '编程', '效率'],
-          recentBookmarks: []
-        },
-        options: {
-          maxTags: 3,
-          preferExisting: true
-        }
-      };
-
-      // Call AI API
-      const response = await provider.generateTags(
-        testRequest,
-        formData.apiKey,
-        formData.aiModel || undefined,
-        formData.apiUrl || undefined,
-        formData.enableCustomPrompt ? formData.customPrompt : undefined
-      );
-
-      setSuccessMessage(`API 测试成功！返回 ${response.suggestedTags.length} 个标签：${response.suggestedTags.map(t => t.name).join(', ')}`);
-      setTimeout(() => setSuccessMessage(null), 5000);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'API 测试失败');
-    } finally {
-      setIsTesting(false);
-    }
-  };
-
-  const formatDate = (timestamp: number) => {
-    if (!timestamp) return '从未同步';
-    return new Date(timestamp).toLocaleString('zh-CN');
-  };
-
-  const handleReset = () => {
-    if (confirm('确定要重置所有设置吗？此操作不可撤销。')) {
-      setFormData({
-        theme: 'auto',
-        themeStyle: 'default',
-        aiProvider: 'openai' as AIProvider,
-        apiKey: '',
-        apiUrl: '',
-        aiModel: '',
-        bookmarkApiUrl: '',
-        bookmarkApiKey: '',
-        enableCustomPrompt: false,
-        customPrompt: DEFAULT_PROMPT_TEMPLATE,
-        maxSuggestedTags: 5,
-        defaultVisibility: 'public',
-        enableAI: true,
-        defaultIncludeThumbnail: true,
-        defaultCreateSnapshot: false,
-        tagTheme: 'classic'
-      });
-      setSuccessMessage('设置已重置');
-      setTimeout(() => setSuccessMessage(null), 2000);
-    }
-  };
-
-  const allSavedConnections = useMemo(() => {
-    return Object.entries(savedConnections).flatMap(([provider, list]) =>
-      (list || []).map(connection => ({
-        ...connection,
-        provider: connection.provider || (provider as AIProvider)
-      }))
-    );
-  }, [savedConnections]);
-  const modelFetchSupported = canFetchModels(formData.aiProvider, formData.apiUrl);
-
-  const handleApplySavedConnection = (connection: AIConnectionInfo, providerOverride?: AIProvider) => {
-    const targetProvider = providerOverride || connection.provider || formData.aiProvider;
-
-    setFormData(prev => ({
-      ...prev,
-      aiProvider: targetProvider,
-      apiUrl: connection.apiUrl || '',
-      apiKey: connection.apiKey || '',
-      aiModel: connection.model || ''
-    }));
-
-    if (targetProvider !== formData.aiProvider) {
-      setAvailableModels([]);
-      setModelFetchError(null);
-      lastModelFetchSignature.current = null;
-    }
-  };
-
-  const handleDeleteSavedConnection = async (connection: AIConnectionInfo, providerOverride?: AIProvider) => {
-    const provider = providerOverride || connection.provider || formData.aiProvider;
-    if (!provider) {
-      setError('无法确定配置所属的 AI 引擎');
-      return;
-    }
-    const previous = savedConnections;
-    const updated = removeSavedConnection(previous, provider, connection);
-    setSavedConnections(updated);
-
-    try {
-      if (!config) {
-        throw new Error('配置尚未加载');
-      }
-      await saveConfig({
-        aiConfig: {
-          ...config.aiConfig,
-          savedConnections: updated
-        }
-      });
-      setSuccessMessage('已删除保存的连接');
-      setTimeout(() => setSuccessMessage(null), 2000);
-    } catch (err) {
-      setSavedConnections(previous);
-      setError(err instanceof Error ? err.message : '删除连接失败');
-    }
-  };
+  const tabs = useMemo(
+    () =>
+      [
+        { id: 'ai' as const, label: 'AI 配置' },
+        { id: 'tmarkstag' as const, label: 'TMarks' },
+        { id: 'newtabtag' as const, label: 'NewTab' },
+        { id: 'preferences' as const, label: '偏好设置' },
+        { id: 'tmarks' as const, label: '同步设置' },
+      ],
+    []
+  );
 
   return (
     <>
       <div className="min-h-screen w-screen bg-gradient-to-br from-[var(--tab-options-page-bg-from)] via-[var(--tab-options-page-bg-via)] to-[var(--tab-options-page-bg-to)]">
-        <div className="max-w-6xl mx-auto px-6 py-12">
+        <div className="w-4/5 mx-auto px-6 py-12">
           <div className="relative overflow-hidden rounded-3xl border border-[color:var(--tab-options-card-border)] bg-[color:var(--tab-options-card-bg)] shadow-sm backdrop-blur mb-10">
             <div className="absolute inset-0 bg-gradient-to-br from-[color:var(--tab-options-hero-gradient-from)] via-[color:var(--tab-options-hero-gradient-via)] to-[color:var(--tab-options-hero-gradient-to)]" />
             <div className="relative p-10">
@@ -569,139 +98,102 @@ export function Options() {
           </div>
 
           <div className="grid gap-8 lg:grid-cols-12">
-            <div className="lg:col-span-8 space-y-8">
-              <AIConfigSection
-                formData={formData}
-                setFormData={setFormData}
-                handleProviderChange={handleProviderChange}
-                setSuccessMessage={setSuccessMessage}
-                handleTestConnection={handleTestAPI}
-                isTesting={isTesting}
-                availableModels={availableModels}
-                isFetchingModels={isFetchingModels}
-                modelFetchError={modelFetchError}
-                onRefreshModels={refreshModelOptions}
-                modelFetchSupported={modelFetchSupported}
-                allSavedConnections={allSavedConnections}
-                onApplySavedConnection={handleApplySavedConnection}
-                onDeleteSavedConnection={handleDeleteSavedConnection}
-                onSaveConnectionPreset={handleSaveConnectionPreset}
-              />
-            </div>
-
-            <div className="lg:col-span-4 space-y-8">
-              <div className="relative overflow-hidden rounded-2xl border border-[color:var(--tab-options-save-card-border)] bg-[color:var(--tab-options-save-card-bg)] shadow-sm backdrop-blur transition-shadow hover:shadow-lg">
-                <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[var(--tab-options-save-card-grad-from)] via-[var(--tab-options-save-card-grad-via)] to-[var(--tab-options-save-card-grad-to)]" />
-                <div className="p-6 pt-10 space-y-6">
-                  <div>
-                    <h3 className="text-xl font-semibold text-[var(--tab-options-title)]">保存与同步</h3>
-                    <p className="mt-2 text-sm text-[var(--tab-options-text)]">
-                      保存当前配置或快速重置为默认状态。
-                    </p>
+            <div className="lg:col-span-3">
+              <div className="sticky top-8 space-y-4">
+                <div className="rounded-2xl border border-[color:var(--tab-options-card-border)] bg-[color:var(--tab-options-card-bg)] shadow-sm backdrop-blur p-3">
+                  <div className="space-y-2">
+                    {tabs.map((t) => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => setActiveTab(t.id)}
+                        className={`w-full text-left px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+                          activeTab === t.id
+                            ? 'bg-[var(--tab-options-button-primary-bg)] text-[var(--tab-options-button-primary-text)]'
+                            : 'text-[var(--tab-options-text)] hover:bg-[var(--tab-options-button-hover-bg)]'
+                        }`}
+                      >
+                        {t.label}
+                      </button>
+                    ))}
                   </div>
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <button
-                      onClick={handleReset}
-                      className="flex-1 rounded-lg border border-[color:var(--tab-options-button-border)] px-4 py-3 text-sm font-medium text-[var(--tab-options-button-text)] hover:bg-[var(--tab-options-button-hover-bg)] transition-colors"
-                    >
-                      重置设置
-                    </button>
-                    <button
-                      onClick={handleSave}
-                      disabled={isLoading}
-                      className="flex-1 rounded-lg bg-[var(--tab-options-button-primary-bg)] px-4 py-3 text-sm font-medium text-[var(--tab-options-button-primary-text)] shadow-sm hover:bg-[var(--tab-options-button-primary-hover)] disabled:cursor-not-allowed disabled:opacity-60 transition-colors"
-                    >
-                      {isLoading ? '保存中...' : '保存设置'}
-                    </button>
+
+                  <div className="mt-4 border-t border-[color:var(--tab-options-card-border)] pt-4 space-y-3">
+                    <div className="text-xs font-semibold text-[var(--tab-options-text-muted)]">保存与同步</div>
+                    <div className="space-y-2">
+                      <button
+                        type="button"
+                        onClick={handleReset}
+                        className="w-full rounded-lg border border-[color:var(--tab-options-button-border)] px-3 py-2 text-sm font-medium text-[var(--tab-options-button-text)] hover:bg-[var(--tab-options-button-hover-bg)] transition-colors"
+                      >
+                        重置设置
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSave}
+                        disabled={isLoading}
+                        className="w-full rounded-lg bg-[var(--tab-options-button-primary-bg)] px-3 py-2 text-sm font-medium text-[var(--tab-options-button-primary-text)] shadow-sm hover:bg-[var(--tab-options-button-primary-hover)] disabled:cursor-not-allowed disabled:opacity-60 transition-colors"
+                      >
+                        {isLoading ? '保存中...' : '保存设置'}
+                      </button>
+                    </div>
                   </div>
                 </div>
+
+                <CacheStatusSection stats={stats} handleSync={handleSync} isLoading={isLoading} formatDate={formatDate} />
               </div>
+            </div>
 
-              <PreferencesSection
-                formData={formData}
-                setFormData={setFormData}
-              />
+            <div className="lg:col-span-9 space-y-8">
+              {activeTab === 'ai' && (
+                <AIConfigSection
+                  formData={formData}
+                  setFormData={setFormData}
+                  handleProviderChange={handleProviderChange}
+                  handleTestConnection={handleTestAPI}
+                  isTesting={isTesting}
+                  availableModels={availableModels}
+                  isFetchingModels={isFetchingModels}
+                  modelFetchError={modelFetchError}
+                  onRefreshModels={refreshModelOptions}
+                  modelFetchSupported={modelFetchSupported}
+                  allSavedConnections={allSavedConnections}
+                  onApplySavedConnection={handleApplySavedConnection}
+                  onDeleteSavedConnection={handleDeleteSavedConnection}
+                  onSaveConnectionPreset={handleSaveConnectionPreset}
+                />
+              )}
 
-              <TMarksConfigSection
-                formData={formData}
-                setFormData={setFormData}
-              />
+              {activeTab === 'tmarkstag' && (
+                <TMarksTagSection formData={formData} setFormData={setFormData} setSuccessMessage={setSuccessMessage} />
+              )}
 
-              <CacheStatusSection
-                stats={stats}
-                handleSync={handleSync}
-                isLoading={isLoading}
-                formatDate={formatDate}
-              />
+              {activeTab === 'newtabtag' && (
+                <NewTabTagSection formData={formData} setFormData={setFormData} setSuccessMessage={setSuccessMessage} />
+              )}
+
+              {activeTab === 'preferences' && (
+                <PreferencesSection formData={formData} setFormData={setFormData} />
+              )}
+
+              {activeTab === 'tmarks' && (
+                <TMarksConfigSection formData={formData} setFormData={setFormData} />
+              )}
+
             </div>
           </div>
         </div>
       </div>
 
-      {isPresetModalOpen && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-[color:var(--tab-options-modal-overlay)] backdrop-blur-sm px-4">
-          <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-[color:var(--tab-options-modal-border)] bg-[color:var(--tab-options-modal-bg)] shadow-xl">
-            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[var(--tab-options-modal-topbar-from)] via-[var(--tab-options-modal-topbar-via)] to-[var(--tab-options-modal-topbar-to)]" />
-            <div className="p-6 pt-10 space-y-6">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h3 className="text-lg font-semibold text-[var(--tab-options-title)]">保存当前配置</h3>
-                  <p className="mt-1 text-sm text-[var(--tab-options-text)]">
-                    为当前 AI 设置输入一个易记的名称。
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleClosePresetModal}
-                  className="rounded-full border border-transparent px-3 py-1 text-xl leading-none text-[var(--tab-options-modal-close-text)] transition-colors hover:border-[var(--tab-options-modal-close-hover-border)] hover:text-[var(--tab-options-modal-close-hover-text)]"
-                  aria-label="关闭"
-                >
-                  ×
-                </button>
-              </div>
-
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-[var(--tab-options-text)]">
-                  配置名称
-                </label>
-                <input
-                  type="text"
-                  value={presetLabel}
-                  onChange={(e) => setPresetLabel(e.target.value)}
-                  autoFocus
-                  className="w-full rounded-lg border border-[color:var(--tab-options-button-border)] bg-[color:var(--tab-options-card-bg)] px-3 py-2 text-[var(--tab-options-title)] focus:outline-none focus:ring-2 focus:ring-[var(--tab-options-button-primary-bg)]"
-                  placeholder="例如：生产环境配置"
-                />
-              </div>
-
-              {presetError && (
-                <div className="rounded-lg border border-[color:var(--tab-options-danger-border)] bg-[color:var(--tab-options-danger-bg)] px-3 py-2 text-sm text-[var(--tab-options-danger-text)]">
-                  {presetError}
-                </div>
-              )}
-
-              <div className="flex justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={handleClosePresetModal}
-                  disabled={isSavingPreset}
-                  className="rounded-lg border border-[color:var(--tab-options-button-border)] px-4 py-2 text-sm font-medium text-[var(--tab-options-button-text)] transition-colors hover:bg-[var(--tab-options-button-hover-bg)] disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  取消
-                </button>
-                <button
-                  type="button"
-                  onClick={handleConfirmSaveConnectionPreset}
-                  disabled={isSavingPreset}
-                  className="rounded-lg bg-[var(--tab-options-button-primary-bg)] px-4 py-2 text-sm font-medium text-[var(--tab-options-button-primary-text)] shadow-sm transition-colors hover:bg-[var(--tab-options-button-primary-hover)] disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {isSavingPreset ? '保存中...' : '确认保存'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <PresetModal
+        isOpen={isPresetModalOpen}
+        presetLabel={presetLabel}
+        presetError={presetError}
+        isSaving={isSavingPreset}
+        onClose={handleClosePresetModal}
+        onConfirm={handleConfirmSaveConnectionPreset}
+        onChangeLabel={setPresetLabel}
+      />
     </>
   );
 }

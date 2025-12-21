@@ -34,6 +34,10 @@ interface Props {
   onUpdate?: (id: string, updates: Partial<GridItem>) => void;
   onRemove?: (id: string) => void;
   isEditing?: boolean;
+  onOpenFolder?: (folderId: string) => void;
+  isBatchMode?: boolean;
+  isSelected?: boolean;
+  onToggleSelect?: (id: string) => void;
 }
 
 export const WidgetRenderer = memo(function WidgetRenderer({
@@ -41,6 +45,10 @@ export const WidgetRenderer = memo(function WidgetRenderer({
   onUpdate,
   onRemove,
   isEditing = false,
+  onOpenFolder,
+  isBatchMode,
+  isSelected,
+  onToggleSelect,
 }: Props) {
   const Component = WIDGET_COMPONENTS[item.type];
   const { cols, rows } = getSizeSpan(item.size);
@@ -66,6 +74,10 @@ export const WidgetRenderer = memo(function WidgetRenderer({
         onUpdate={onUpdate}
         onRemove={onRemove}
         isEditing={isEditing}
+        onOpenFolder={onOpenFolder}
+        isBatchMode={isBatchMode}
+        isSelected={isSelected}
+        onToggleSelect={onToggleSelect}
       />
     </div>
   );

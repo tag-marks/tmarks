@@ -29,6 +29,7 @@ export function NewTab() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showAddFolderModal, setShowAddFolderModal] = useState(false);
   const [showBatchEdit, setShowBatchEdit] = useState(false);
+  const [batchSelectedIds, setBatchSelectedIds] = useState<Set<string>>(new Set());
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
   const wheelTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const isWheelLocked = useRef(false);
@@ -202,7 +203,12 @@ export function NewTab() {
         {settings.showShortcuts && (
           <div className="w-full max-w-5xl animate-fadeIn px-4 shortcut-area">
             <div className="flex items-start gap-4">
-              <WidgetGrid columns={settings.shortcutColumns} />
+              <WidgetGrid
+                columns={settings.shortcutColumns}
+                isBatchMode={showBatchEdit}
+                batchSelectedIds={batchSelectedIds}
+                onBatchSelectedIdsChange={setBatchSelectedIds}
+              />
             </div>
           </div>
         )}
@@ -245,7 +251,12 @@ export function NewTab() {
       {/* 批量编辑弹窗 */}
       <BatchEditModal
         isOpen={showBatchEdit}
-        onClose={() => setShowBatchEdit(false)}
+        onClose={() => {
+          setShowBatchEdit(false);
+          setBatchSelectedIds(new Set());
+        }}
+        selectedIds={batchSelectedIds}
+        onSelectedIdsChange={setBatchSelectedIds}
       />
 
       {/* 添加文件夹弹窗 */}
@@ -279,7 +290,10 @@ export function NewTab() {
             {
               label: '批量编辑',
               icon: <Edit className="w-4 h-4" />,
-              onClick: () => setShowBatchEdit(true),
+              onClick: () => {
+                setBatchSelectedIds(new Set());
+                setShowBatchEdit(true);
+              },
               divider: true,
             },
           ]}

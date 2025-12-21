@@ -61,7 +61,7 @@ export const WidgetSelector = memo(function WidgetSelector({
           <h3 className="text-lg font-medium text-white">添加组件</h3>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+            className="p-1.5 rounded-xl hover:bg-white/10 transition-colors focus:outline-none focus:ring-2 focus:ring-white/20"
           >
             <X className="w-5 h-5 text-white/70" />
           </button>
@@ -79,7 +79,7 @@ export const WidgetSelector = memo(function WidgetSelector({
                            bg-white/5 hover:bg-white/10 border border-white/10 
                            hover:border-white/20 transition-all group"
               >
-                <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center
+                <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center
                                 group-hover:bg-white/20 transition-colors">
                   <IconComponent className="w-5 h-5 text-white/70" />
                 </div>

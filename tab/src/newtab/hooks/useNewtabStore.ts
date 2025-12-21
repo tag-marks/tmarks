@@ -9,6 +9,103 @@ import { StorageService } from '@/lib/utils/storage';
 import { getTMarksUrls } from '@/lib/constants/urls';
 import { getWidgetMeta, getDefaultWidgetConfig } from '../components/widgets/widgetRegistry';
 
+let writableRootBookmarkIdPromise: Promise<string | null> | null = null;
+
+// 文件夹最大嵌套层级限制
+const MAX_FOLDER_DEPTH = 5;
+
+function pruneEmptySecondLevelFolders(
+  items: GridItem[],
+  currentFolderId: string | null,
+): { items: GridItem[]; currentFolderId: string | null; changed: boolean } {
+  const itemsById = new Map(items.map((i) => [i.id, i] as const));
+  const childCount = new Map<string, number>();
+  for (const item of items) {
+    if (item.parentId) {
+      childCount.set(item.parentId, (childCount.get(item.parentId) ?? 0) + 1);
+    }
+  }
+
+  const toRemove = new Set<string>();
+  for (const item of items) {
+    if (item.type !== 'bookmarkFolder' || item.browserBookmarkId || !item.parentId) continue;
+    const parent = itemsById.get(item.parentId);
+    const parentIsRoot = parent && (parent.parentId ?? null) === null;
+    if (parentIsRoot && (childCount.get(item.id) ?? 0) === 0) {
+      toRemove.add(item.id);
+    }
+  }
+
+  if (toRemove.size === 0) {
+    return { items, currentFolderId, changed: false };
+  }
+
+  const filtered = items.filter((item) => !toRemove.has(item.id));
+
+  const scopeMap = new Map<string, GridItem[]>();
+  filtered.forEach((item) => {
+    const key = `${item.groupId ?? 'home'}|${item.parentId ?? 'root'}`;
+    if (!scopeMap.has(key)) scopeMap.set(key, []);
+    scopeMap.get(key)!.push(item);
+  });
+
+  const posById = new Map<string, number>();
+  scopeMap.forEach((scopeItems) => {
+    scopeItems.sort((a, b) => a.position - b.position);
+    scopeItems.forEach((item, index) => {
+      posById.set(item.id, index);
+    });
+  });
+
+  const reordered = filtered.map((item) => {
+    const nextPos = posById.get(item.id);
+    return nextPos !== undefined && nextPos !== item.position ? { ...item, position: nextPos } : item;
+  });
+
+  const nextCurrentFolderId = currentFolderId && toRemove.has(currentFolderId) ? null : currentFolderId;
+  return { items: reordered, currentFolderId: nextCurrentFolderId, changed: true };
+}
+
+async function getWritableRootBookmarkId(browserBookmarksRootId: string | null): Promise<string | null> {
+  if (!browserBookmarksRootId) return null;
+  if (browserBookmarksRootId !== '0') return browserBookmarksRootId;
+
+  if (writableRootBookmarkIdPromise) {
+    return writableRootBookmarkIdPromise;
+  }
+
+  writableRootBookmarkIdPromise = (async () => {
+    try {
+      if (typeof chrome === 'undefined' || !chrome.bookmarks) return null;
+
+      const tree = await chrome.bookmarks.getTree();
+      const root = tree[0];
+
+      const byId = root.children?.find((c) => c.id === '1' && !c.url);
+      if (byId) return byId.id;
+
+      const titles = new Set([
+        'Bookmarks Bar',
+        'Bookmarks bar',
+        'Bookmarks Toolbar',
+        '书签栏',
+        '收藏夹栏',
+        'Favorites bar',
+        '收藏夹',
+      ]);
+      const byTitle = root.children?.find((c) => !c.url && titles.has(c.title));
+      if (byTitle) return byTitle.id;
+
+      const firstFolder = root.children?.find((c) => !c.url);
+      return firstFolder?.id || null;
+    } catch {
+      return null;
+    }
+  })();
+
+  return writableRootBookmarkIdPromise;
+}
+
 // 同步 NewTab 数据到后端（静默执行，不阻塞 UI）
 async function syncNewtabToBackend(data: {
   shortcuts: Shortcut[];
@@ -123,6 +220,7 @@ interface NewTabState {
   gridItems: GridItem[];
   currentFolderId: string | null;
   browserBookmarksRootId: string | null;
+  homeBrowserFolderId: string | null;
   isApplyingBrowserBookmarks: boolean;
   browserBookmarkWriteLockUntil: number;
   
@@ -136,14 +234,14 @@ interface NewTabState {
   removeShortcut: (id: string) => void;
   reorderShortcuts: (fromIndex: number, toIndex: number) => void;
   incrementClickCount: (id: string) => void;
+  getFilteredShortcuts: () => Shortcut[];
   
   // 分组操作
   setActiveGroup: (groupId: string | null) => void;
   addGroup: (name: string, icon: string) => void;
   updateGroup: (id: string, updates: Partial<ShortcutGroup>) => void;
   removeGroup: (id: string) => void;
-  getFilteredShortcuts: () => Shortcut[];
-  
+
   // 文件夹操作
   addFolder: (name: string, groupId?: string) => string;
   updateFolder: (id: string, updates: Partial<ShortcutFolder>) => void;
@@ -167,22 +265,268 @@ interface NewTabState {
   ) => void;
   updateGridItem: (id: string, updates: Partial<GridItem>) => void;
   removeGridItem: (id: string) => void;
+  removeGridFolder: (id: string, mode: 'keep' | 'all') => void;
   reorderGridItems: (fromIndex: number, toIndex: number) => void;
   getFilteredGridItems: () => GridItem[];
   migrateToGridItems: () => void;
   setCurrentFolderId: (folderId: string | null) => void;
   moveGridItemToFolder: (id: string, folderId: string | null) => void;
   reorderGridItemsInCurrentScope: (activeId: string, overId: string) => void;
+  reorderGridItemsInFolderScope: (folderId: string, activeId: string, overId: string) => void;
+  cleanupEmptySecondLevelFolders: () => void;
   setBrowserBookmarksRootId: (rootId: string | null) => void;
+  setHomeBrowserFolderId: (folderId: string | null) => void;
   setIsApplyingBrowserBookmarks: (isApplying: boolean) => void;
   setBrowserBookmarkWriteLockUntil: (until: number) => void;
-  replaceBrowserBookmarkGridItems: (items: GridItem[]) => void;
+  replaceBrowserBookmarkGridItems: (items: GridItem[], options?: { groupIds?: string[] }) => void;
+  ensureGroupBookmarkFolderId: (groupId: string) => Promise<string | null>;
+
+  // Browser bookmarks incremental apply (browser -> NewTab)
+  upsertBrowserBookmarkNode: (node: { id: string; parentId?: string; title?: string; url?: string; index?: number }) => void;
+  removeBrowserBookmarkById: (bookmarkId: string) => void;
+  applyBrowserBookmarkChildrenOrder: (parentBookmarkId: string, orderedChildBookmarkIds: string[]) => void;
+  mirrorHomeItemsToBrowser: (ids: string[]) => void;
+  setGroupBookmarkFolderId: (groupId: string, folderId: string | null) => void;
 }
 
 // 生成唯一 ID
 const generateId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
-export const useNewtabStore = create<NewTabState>((set, get) => ({
+const hasBookmarksApi = () => typeof chrome !== 'undefined' && !!chrome.bookmarks;
+
+const HOME_FOLDER_TITLE = 'NewTab Home';
+const STORAGE_KEY_HOME_FOLDER_ID = 'tmarks_home_bookmark_id';
+
+async function getSavedHomeFolderId(): Promise<string | null> {
+  try {
+    const result = await chrome.storage.local.get(STORAGE_KEY_HOME_FOLDER_ID);
+    const savedId = result[STORAGE_KEY_HOME_FOLDER_ID];
+    return typeof savedId === 'string' ? savedId : null;
+  } catch {
+    return null;
+  }
+}
+
+async function saveHomeFolderId(id: string): Promise<void> {
+  try {
+    await chrome.storage.local.set({ [STORAGE_KEY_HOME_FOLDER_ID]: id });
+  } catch {
+    // ignore
+  }
+}
+
+export async function ensureHomeFolder(rootId: string | null): Promise<{ id: string; wasRecreated: boolean } | null> {
+  if (!hasBookmarksApi() || !rootId) {
+    console.log('[TMarks] ensureHomeFolder: 无效的 rootId 或无书签 API');
+    return null;
+  }
+
+  const savedId = await getSavedHomeFolderId();
+  console.log(`[TMarks] ensureHomeFolder: 已保存的首页文件夹ID: ${savedId}`);
+  
+  if (savedId) {
+    try {
+      const nodes = await chrome.bookmarks.get(savedId);
+      const node = nodes?.[0];
+      if (node && !node.url) {
+        const parentId = (node as any).parentId;
+        if (parentId !== rootId) {
+          console.log(`[TMarks] ensureHomeFolder: 移动首页文件夹到 TMarks 下`);
+          await chrome.bookmarks.move(node.id, { parentId: rootId });
+        }
+        await saveHomeFolderId(node.id);
+        console.log(`[TMarks] ensureHomeFolder: 使用已存在的首页文件夹 ID: ${node.id}`);
+        return { id: node.id, wasRecreated: false };
+      }
+    } catch (e) {
+      console.log('[TMarks] ensureHomeFolder: 保存的ID无效，继续查找或创建');
+    }
+  }
+
+  try {
+    const children = await chrome.bookmarks.getChildren(rootId);
+    const existing = children.find((c) => !c.url && c.title === HOME_FOLDER_TITLE);
+    if (existing) {
+      await saveHomeFolderId(existing.id);
+      console.log(`[TMarks] ensureHomeFolder: 找到已存在的首页文件夹 ID: ${existing.id}`);
+      return { id: existing.id, wasRecreated: false };
+    }
+
+    console.log('[TMarks] ensureHomeFolder: 创建新的首页文件夹');
+    const created = await chrome.bookmarks.create({
+      parentId: rootId,
+      title: HOME_FOLDER_TITLE,
+    });
+    await saveHomeFolderId(created.id);
+    console.log(`[TMarks] ensureHomeFolder: 已创建首页文件夹 ID: ${created.id}`);
+    return { id: created.id, wasRecreated: savedId !== null };
+  } catch (e) {
+    console.error('[TMarks] ensureHomeFolder: 创建首页文件夹失败:', e);
+    return null;
+  }
+}
+
+const isHomeRootItem = (item: GridItem) => (item.groupId ?? 'home') === 'home' && (item.parentId ?? null) === null;
+
+export const useNewtabStore = create<NewTabState>((set, get) => {
+  const ensureHomeFolderId = async (): Promise<string | null> => {
+    const state = get();
+    if (!state.browserBookmarksRootId) return null;
+    let homeFolderId = state.homeBrowserFolderId;
+    if (homeFolderId) return homeFolderId;
+    const ensured = await ensureHomeFolder(state.browserBookmarksRootId);
+    if (!ensured) return null;
+    homeFolderId = ensured.id;
+    state.setHomeBrowserFolderId(homeFolderId);
+    return homeFolderId;
+  };
+
+  const ensureGroupFolderId = async (groupId: string): Promise<string | null> => {
+    const state = get();
+    if (!hasBookmarksApi()) return null;
+    if (!state.browserBookmarksRootId) return null;
+    if (groupId === 'home') {
+      return ensureHomeFolderId();
+    }
+
+    const group = state.shortcutGroups.find((g) => g.id === groupId);
+    if (!group) return null;
+
+    const verifyFolder = async (folderId?: string): Promise<string | null> => {
+      if (!folderId) return null;
+      try {
+        const nodes = await chrome.bookmarks.get(folderId);
+        const node = nodes?.[0];
+        if (node && !node.url) {
+          return folderId;
+        }
+      } catch {
+        // ignore
+      }
+      return null;
+    };
+
+    const existing = await verifyFolder(group.bookmarkFolderId ?? undefined);
+    if (existing) return existing;
+
+    const rootId = state.browserBookmarksRootId;
+    if (!rootId) return null;
+
+    try {
+      const children = await chrome.bookmarks.getChildren(rootId);
+      const matched = children.find((c) => !c.url && c.title === group.name);
+      if (matched) {
+        state.setGroupBookmarkFolderId(groupId, matched.id);
+        return matched.id;
+      }
+    } catch {
+      // ignore
+    }
+    return null;
+  };
+
+  const inferGroupIdFromBookmarkParent = (parentBookmarkId?: string): string => {
+    const state = get();
+    if (!parentBookmarkId) return 'home';
+    if (parentBookmarkId === state.homeBrowserFolderId) return 'home';
+    const matchedGroup = state.shortcutGroups.find((g) => g.bookmarkFolderId === parentBookmarkId);
+    if (matchedGroup) return matchedGroup.id;
+    const parentGrid = state.gridItems.find(
+      (item) => item.browserBookmarkId === parentBookmarkId && item.type === 'bookmarkFolder'
+    );
+    return parentGrid?.groupId ?? 'home';
+  };
+
+  const isRootContainerBookmarkId = (bookmarkId?: string | null) => {
+    if (!bookmarkId) return false;
+    const state = get();
+    if (bookmarkId === state.homeBrowserFolderId) return true;
+    return state.shortcutGroups.some((group) => group.bookmarkFolderId === bookmarkId);
+  };
+
+  const resolveBookmarkParentId = async (opts: {
+    parentGridId?: string | null;
+    inferredGroupId?: string | null;
+  }): Promise<string | null> => {
+    const state = get();
+    if (!state.browserBookmarksRootId) return null;
+
+    if (opts.parentGridId) {
+      const parentGrid = state.gridItems.find((i) => i.id === opts.parentGridId);
+      if (parentGrid?.browserBookmarkId) return parentGrid.browserBookmarkId;
+    }
+
+    const groupId = opts.inferredGroupId ?? state.activeGroupId ?? 'home';
+    if ((opts.parentGridId ?? null) === null) {
+      if (groupId === 'home') {
+        const homeId = await ensureHomeFolderId();
+        if (homeId) return homeId;
+      } else {
+        const groupFolderId = await ensureGroupFolderId(groupId);
+        if (groupFolderId) return groupFolderId;
+      }
+    }
+
+    if (groupId === 'home') {
+      const homeId = await ensureHomeFolderId();
+      if (homeId) return homeId;
+    } else {
+      const groupFolderId = await ensureGroupFolderId(groupId);
+      if (groupFolderId) return groupFolderId;
+    }
+
+    const writable = await getWritableRootBookmarkId(state.browserBookmarksRootId);
+    return writable ?? state.browserBookmarksRootId;
+  };
+
+  const mirrorHomeItemToBrowser = async (itemId: string) => {
+    const state = get();
+    if (!hasBookmarksApi()) return;
+    if (!state.browserBookmarksRootId) return;
+    const item = state.gridItems.find((i) => i.id === itemId);
+    if (!item) return;
+    if (item.browserBookmarkId) return;
+    if (!isHomeRootItem(item)) return;
+    if (item.type === 'shortcut' && !item.shortcut?.url) return;
+
+    let parentBookmarkId = await ensureHomeFolderId();
+    if (!parentBookmarkId) return;
+
+    state.setBrowserBookmarkWriteLockUntil(Date.now() + 1200);
+    try {
+      let created: chrome.bookmarks.BookmarkTreeNode | undefined;
+      if (item.type === 'bookmarkFolder') {
+        created = await chrome.bookmarks.create({
+          parentId: parentBookmarkId,
+          title: item.bookmarkFolder?.title || '文件夹',
+        });
+      } else if (item.type === 'shortcut') {
+        created = await chrome.bookmarks.create({
+          parentId: parentBookmarkId,
+          title: item.shortcut?.title || item.shortcut?.url || '快捷方式',
+          url: item.shortcut?.url,
+        });
+      }
+
+      if (!created?.id) return;
+
+      set({
+        gridItems: get().gridItems.map((gridItem) =>
+          gridItem.id === item.id
+            ? {
+                ...gridItem,
+                browserBookmarkId: created!.id,
+              }
+            : gridItem
+        ),
+      });
+      state.saveData();
+    } catch (e) {
+      console.warn('[NewTab] Failed to mirror home item to browser:', e);
+    }
+  };
+
+  return {
   shortcuts: [],
   shortcutGroups: DEFAULT_GROUPS,
   shortcutFolders: [],
@@ -192,6 +536,7 @@ export const useNewtabStore = create<NewTabState>((set, get) => ({
   gridItems: [],
   currentFolderId: null,
   browserBookmarksRootId: null,
+  homeBrowserFolderId: null,
   isApplyingBrowserBookmarks: false,
   browserBookmarkWriteLockUntil: 0,
   
@@ -221,6 +566,7 @@ export const useNewtabStore = create<NewTabState>((set, get) => ({
         gridItems: data?.gridItems || [],
         currentFolderId: null,
         browserBookmarksRootId: null,
+        homeBrowserFolderId: null,
         isApplyingBrowserBookmarks: false,
         browserBookmarkWriteLockUntil: 0,
         isLoading: false,
@@ -234,6 +580,146 @@ export const useNewtabStore = create<NewTabState>((set, get) => ({
     } catch (error) {
       console.error('Failed to load newtab data:', error);
       set({ isLoading: false });
+    }
+  },
+
+  removeGridFolder: (id, mode) => {
+    const { shortcuts, shortcutGroups, shortcutFolders, settings, gridItems, currentFolderId, saveData } = get();
+    const target = gridItems.find((i) => i.id === id);
+    if (!target || target.type !== 'bookmarkFolder') return;
+
+    if (mode === 'all') {
+      get().removeGridItem(id);
+      return;
+    }
+
+    // mode === 'keep': move all nested descendants to parent level
+    const targetGroupId = target.groupId;
+    const targetParentId = target.parentId ?? null;
+
+    // Recursively collect all descendant IDs (folders to be flattened)
+    const foldersToFlatten = new Set<string>([id]);
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const item of gridItems) {
+        if (item.type === 'bookmarkFolder' && item.parentId && foldersToFlatten.has(item.parentId) && !foldersToFlatten.has(item.id)) {
+          foldersToFlatten.add(item.id);
+          changed = true;
+        }
+      }
+    }
+
+    // Collect all items that need to be moved to parent level (direct children of any flattened folder)
+    const itemsToMove = gridItems
+      .filter((item) => item.parentId && foldersToFlatten.has(item.parentId))
+      .sort((a, b) => a.position - b.position);
+
+    // Remove all flattened folders from the list
+    const filtered = gridItems.filter((item) => !foldersToFlatten.has(item.id));
+
+    const existingSiblings = filtered
+      .filter((item) => item.groupId === targetGroupId && (item.parentId ?? null) === targetParentId)
+      .sort((a, b) => a.position - b.position);
+
+    const movedToParent = new Map(
+      itemsToMove.map((item, index) => [
+        item.id,
+        {
+          parentId: targetParentId ?? undefined,
+          position: existingSiblings.length + index,
+        },
+      ] as const)
+    );
+
+    const moved = filtered.map((item) => {
+      const next = movedToParent.get(item.id);
+      return next ? { ...item, parentId: next.parentId, position: next.position } : item;
+    });
+
+    const scopeItems = moved
+      .filter((item) => item.groupId === targetGroupId && (item.parentId ?? null) === targetParentId)
+      .sort((a, b) => a.position - b.position);
+    const posById = new Map(scopeItems.map((item, index) => [item.id, index] as const));
+    const reordered = moved.map((item) => {
+      const nextPos = posById.get(item.id);
+      return nextPos === undefined ? item : { ...item, position: nextPos };
+    });
+
+    const nextCurrentFolderId = currentFolderId && foldersToFlatten.has(currentFolderId) ? null : currentFolderId;
+    set({ gridItems: reordered, currentFolderId: nextCurrentFolderId });
+    saveData();
+    debouncedSync({ shortcuts, groups: shortcutGroups, folders: shortcutFolders, settings, gridItems: reordered });
+  },
+
+  cleanupEmptySecondLevelFolders: () => {
+    const {
+      gridItems,
+      currentFolderId,
+      shortcuts,
+      shortcutGroups,
+      shortcutFolders,
+      settings,
+      saveData,
+    } = get();
+
+    const { items, currentFolderId: nextFolderId, changed } = pruneEmptySecondLevelFolders(gridItems, currentFolderId);
+    if (!changed) return;
+
+    set({ gridItems: items, currentFolderId: nextFolderId });
+    saveData();
+    debouncedSync({ shortcuts, groups: shortcutGroups, folders: shortcutFolders, settings, gridItems: items });
+  },
+
+  reorderGridItemsInFolderScope: (folderId, activeId, overId) => {
+    const { shortcuts, shortcutGroups, shortcutFolders, settings, gridItems, saveData } = get();
+    const folder = gridItems.find((i) => i.id === folderId);
+    if (!folder) return;
+
+    const targetGroupId = folder.groupId ?? 'home';
+    const scopeItems = gridItems
+      .filter((item) => item.groupId === targetGroupId && (item.parentId ?? null) === folderId)
+      .sort((a, b) => a.position - b.position);
+
+    const fromIndex = scopeItems.findIndex((i) => i.id === activeId);
+    const toIndex = scopeItems.findIndex((i) => i.id === overId);
+
+    if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) return;
+
+    const reorderedScope = [...scopeItems];
+    const [removed] = reorderedScope.splice(fromIndex, 1);
+    reorderedScope.splice(toIndex, 0, removed);
+
+    const positionById = new Map(reorderedScope.map((item, index) => [item.id, index] as const));
+    const newGridItems = gridItems.map((item) => {
+      const nextPos = positionById.get(item.id);
+      return nextPos === undefined ? item : { ...item, position: nextPos };
+    });
+
+    set({ gridItems: newGridItems });
+    saveData();
+    debouncedSync({ shortcuts, groups: shortcutGroups, folders: shortcutFolders, settings, gridItems: newGridItems });
+
+    const state = get();
+    const activeItem = scopeItems[fromIndex];
+    if (!state.isApplyingBrowserBookmarks && activeItem?.browserBookmarkId) {
+      (async () => {
+        try {
+          const parentBookmarkId = await resolveBookmarkParentId({
+            parentGridId: folderId,
+            inferredGroupId: state.gridItems.find((i) => i.id === folderId)?.groupId ?? null,
+          });
+          if (!parentBookmarkId) return;
+
+          state.setBrowserBookmarkWriteLockUntil(Date.now() + 800);
+          await chrome.bookmarks.move(activeItem.browserBookmarkId!, {
+            parentId: parentBookmarkId,
+            index: toIndex,
+          });
+        } catch (e) {
+          console.warn('[NewTab] Failed to reorder browser bookmark:', e);
+        }
+      })();
     }
   },
   
@@ -318,6 +804,8 @@ export const useNewtabStore = create<NewTabState>((set, get) => ({
     });
     saveData();
   },
+
+  ensureGroupBookmarkFolderId: (groupId) => ensureGroupFolderId(groupId),
   
   updateSettings: (updates) => {
     const { shortcuts, shortcutGroups, shortcutFolders, settings, gridItems, saveData } = get();
@@ -330,11 +818,11 @@ export const useNewtabStore = create<NewTabState>((set, get) => ({
   // 分组操作
   setActiveGroup: (groupId) => {
     const { saveData } = get();
-    set({ activeGroupId: groupId });
+    // 切换分组时清除当前文件夹，避免显示上一个分组的文件夹内容
+    set({ activeGroupId: groupId, currentFolderId: null });
     saveData();
-    // 不需要同步 activeGroupId，这是本地状态
-  },
-
+  },  // 不需要同步 activeGroupId，这是本地状态
+  
   addGroup: (name, icon) => {
     const { shortcuts, shortcutGroups, shortcutFolders, settings, gridItems, saveData } = get();
     const newGroup: ShortcutGroup = {
@@ -462,16 +950,15 @@ export const useNewtabStore = create<NewTabState>((set, get) => ({
     saveData();
     debouncedSync({ shortcuts, groups: shortcutGroups, folders: shortcutFolders, settings, gridItems: newGridItems });
 
-    const { isApplyingBrowserBookmarks, browserBookmarksRootId } = get();
-    if (!isApplyingBrowserBookmarks && browserBookmarksRootId && (type === 'shortcut' || type === 'bookmarkFolder')) {
+    const { isApplyingBrowserBookmarks } = get();
+    if (!isApplyingBrowserBookmarks && (type === 'shortcut' || type === 'bookmarkFolder')) {
       (async () => {
         try {
           const state = get();
-          const parentGrid = newItem.parentId
-            ? state.gridItems.find((i) => i.id === newItem.parentId)
-            : null;
-
-          const parentBookmarkId = parentGrid?.browserBookmarkId || state.browserBookmarksRootId;
+          const parentBookmarkId = await resolveBookmarkParentId({
+            parentGridId: newItem.parentId ?? null,
+            inferredGroupId: newItem.groupId ?? null,
+          });
           if (!parentBookmarkId) return;
 
           state.setBrowserBookmarkWriteLockUntil(Date.now() + 800);
@@ -662,11 +1149,39 @@ export const useNewtabStore = create<NewTabState>((set, get) => ({
     const { gridItems, activeGroupId, currentFolderId } = get();
     // 如果没有选中分组，默认显示首页分组
     const targetGroupId = activeGroupId ?? 'home';
-    return gridItems.filter((item) => {
-      const inGroup = item.groupId === targetGroupId;
-      const inFolder = (item.parentId ?? null) === (currentFolderId ?? null);
-      return inGroup && inFolder;
-    });
+
+    const currentFolderItem = currentFolderId ? gridItems.find((i) => i.id === currentFolderId) : null;
+    const isBrowserFolderScope = !!currentFolderItem?.browserBookmarkId;
+
+    // 首页（root）：只展示自建内容（非浏览器同步项）
+    if (!currentFolderId) {
+      return gridItems
+        .filter((item) => {
+          const inGroup = item.groupId === targetGroupId;
+          const inFolder = (item.parentId ?? null) === null;
+          return inGroup && inFolder;
+        })
+        .sort((a, b) => a.position - b.position);
+    }
+
+    // 浏览器同步文件夹：只展示浏览器同步的子项（避免混入首页组件/按钮）
+    if (isBrowserFolderScope) {
+      return gridItems
+        .filter((item) => {
+          const inFolder = (item.parentId ?? null) === (currentFolderId ?? null);
+          return !!item.browserBookmarkId && inFolder;
+        })
+        .sort((a, b) => a.position - b.position);
+    }
+
+    // 自建文件夹：维持原逻辑
+    return gridItems
+      .filter((item) => {
+        const inGroup = item.groupId === targetGroupId;
+        const inFolder = (item.parentId ?? null) === (currentFolderId ?? null);
+        return inGroup && inFolder;
+      })
+      .sort((a, b) => a.position - b.position);
   },
 
   setCurrentFolderId: (folderId) => {
@@ -678,16 +1193,52 @@ export const useNewtabStore = create<NewTabState>((set, get) => ({
     const moving = gridItems.find((i) => i.id === id);
     if (!moving) return;
 
+    // 计算目标文件夹深度
+    const getDepth = (parentId: string | null): number => {
+      if (!parentId) return 0;
+      const parent = gridItems.find((i) => i.id === parentId);
+      if (!parent) return 0;
+      return 1 + getDepth(parent.parentId ?? null);
+    };
+
+    const targetDepth = getDepth(folderId);
+    
+    // 如果移动的是文件夹，计算其最大子层级深度
+    const getMaxChildDepth = (itemId: string): number => {
+      const children = gridItems.filter((i) => i.parentId === itemId);
+      if (children.length === 0) return 0;
+      return 1 + Math.max(...children.map((c) => getMaxChildDepth(c.id)));
+    };
+
+    const movingMaxChildDepth = moving.type === 'bookmarkFolder' ? getMaxChildDepth(moving.id) : 0;
+    const totalDepth = targetDepth + 1 + movingMaxChildDepth;
+
+    // 超出最大层级限制时阻止移动
+    if (totalDepth > MAX_FOLDER_DEPTH) {
+      console.warn(`[NewTab] 文件夹层级超出限制 (${totalDepth} > ${MAX_FOLDER_DEPTH})`);
+      return;
+    }
+
     const targetParentId = folderId ?? null;
-    const targetGroupId = moving.groupId;
+    const isBrowserSynced = !!moving.browserBookmarkId;
+    const inferredGroupId = (() => {
+      if (isBrowserSynced) return moving.groupId ?? 'home';
+
+      const activeGroupId = get().activeGroupId ?? 'home';
+
+      const targetFolder = folderId ? gridItems.find((i) => i.id === folderId) : null;
+      const sourceFolder = moving.parentId ? gridItems.find((i) => i.id === moving.parentId) : null;
+
+      return (targetFolder?.groupId ?? sourceFolder?.groupId ?? moving.groupId ?? activeGroupId) as string;
+    })();
 
     const targetScope = gridItems
-      .filter(
-        (item) =>
-          item.id !== id &&
-          item.groupId === targetGroupId &&
-          (item.parentId ?? null) === targetParentId
-      )
+      .filter((item) => {
+        if (item.id === id) return false;
+        if ((item.parentId ?? null) !== targetParentId) return false;
+        if (isBrowserSynced) return !!item.browserBookmarkId;
+        return !item.browserBookmarkId && (item.groupId ?? 'home') === inferredGroupId;
+      })
       .sort((a, b) => a.position - b.position);
 
     const nextPosition = targetScope.length;
@@ -696,6 +1247,7 @@ export const useNewtabStore = create<NewTabState>((set, get) => ({
       if (item.id !== id) return item;
       return {
         ...item,
+        groupId: inferredGroupId,
         parentId: targetParentId ?? undefined,
         position: nextPosition,
       };
@@ -704,12 +1256,18 @@ export const useNewtabStore = create<NewTabState>((set, get) => ({
     saveData();
     debouncedSync({ shortcuts, groups: shortcutGroups, folders: shortcutFolders, settings, gridItems: newGridItems });
 
+    if (!isBrowserSynced && inferredGroupId === 'home' && targetParentId === null) {
+      get().mirrorHomeItemsToBrowser([id]);
+    }
+
     const state = get();
-    if (!state.isApplyingBrowserBookmarks && state.browserBookmarksRootId && moving.browserBookmarkId) {
+    if (!state.isApplyingBrowserBookmarks && moving.browserBookmarkId) {
       (async () => {
         try {
-          const targetParentGrid = folderId ? state.gridItems.find((i) => i.id === folderId) : null;
-          const targetParentBookmarkId = targetParentGrid?.browserBookmarkId || state.browserBookmarksRootId;
+          const targetParentBookmarkId = await resolveBookmarkParentId({
+            parentGridId: folderId,
+            inferredGroupId,
+          });
           if (!targetParentBookmarkId) return;
 
           state.setBrowserBookmarkWriteLockUntil(Date.now() + 800);
@@ -749,10 +1307,52 @@ export const useNewtabStore = create<NewTabState>((set, get) => ({
     set({ gridItems: newGridItems });
     saveData();
     debouncedSync({ shortcuts, groups: shortcutGroups, folders: shortcutFolders, settings, gridItems: newGridItems });
+
+    const state = get();
+    const activeItem = scopeItems[fromIndex];
+    if (
+      !state.isApplyingBrowserBookmarks &&
+      activeItem?.browserBookmarkId
+    ) {
+      (async () => {
+        try {
+          const parentBookmarkId = await resolveBookmarkParentId({
+            parentGridId: state.currentFolderId,
+            inferredGroupId: targetGroupId,
+          });
+          if (!parentBookmarkId) return;
+
+          state.setBrowserBookmarkWriteLockUntil(Date.now() + 800);
+          await chrome.bookmarks.move(activeItem.browserBookmarkId!, {
+            parentId: parentBookmarkId,
+            index: toIndex,
+          });
+        } catch (e) {
+          console.warn('[NewTab] Failed to reorder browser bookmark:', e);
+        }
+      })();
+    }
   },
 
   setBrowserBookmarksRootId: (rootId) => {
-    set({ browserBookmarksRootId: rootId });
+    set((state) => ({
+      browserBookmarksRootId: rootId,
+      homeBrowserFolderId: rootId ? state.homeBrowserFolderId : null,
+    }));
+  },
+
+  setHomeBrowserFolderId: (folderId) => {
+    set({ homeBrowserFolderId: folderId });
+  },
+
+  setGroupBookmarkFolderId: (groupId, folderId) => {
+    const { shortcuts, shortcutGroups, shortcutFolders, settings, gridItems, saveData } = get();
+    const nextGroups = shortcutGroups.map((group) =>
+      group.id === groupId ? { ...group, bookmarkFolderId: folderId ?? undefined } : group
+    );
+    set({ shortcutGroups: nextGroups });
+    saveData();
+    debouncedSync({ shortcuts, groups: nextGroups, folders: shortcutFolders, settings, gridItems });
   },
 
   setIsApplyingBrowserBookmarks: (isApplying) => {
@@ -763,12 +1363,146 @@ export const useNewtabStore = create<NewTabState>((set, get) => ({
     set({ browserBookmarkWriteLockUntil: until });
   },
 
-  replaceBrowserBookmarkGridItems: (items) => {
+  replaceBrowserBookmarkGridItems: (items, options) => {
     const { gridItems, saveData } = get();
-    const preserved = gridItems.filter((i) => !i.browserBookmarkId);
-    const next = [...preserved, ...items];
+    const inferredGroups = Array.from(
+      new Set(items.map((item) => (item.groupId ?? 'home') as string))
+    );
+    const targetGroupIds = new Set(
+      options?.groupIds && options.groupIds.length > 0 ? options.groupIds : inferredGroups
+    );
+    const preserved = gridItems.filter((item) => {
+      if (!item.browserBookmarkId) return true;
+      if (targetGroupIds.size === 0) return false;
+      const groupId = item.groupId ?? 'home';
+      return !targetGroupIds.has(groupId);
+    });
+    const normalized = items.map((item) => ({
+      ...item,
+      parentId: item.parentId ?? null,
+      groupId: item.groupId ?? 'home',
+    }));
+    const next = [...preserved, ...normalized];
     set({ gridItems: next });
     saveData();
+  },
+
+  upsertBrowserBookmarkNode: (node) => {
+    const { gridItems, saveData, browserBookmarksRootId } = get();
+    if (!browserBookmarksRootId) return;
+
+    const gridId = `bb-${node.id}`;
+    const existing = gridItems.find((i) => i.id === gridId);
+
+    const parentBookmarkId = node.parentId;
+    const groupId = inferGroupIdFromBookmarkParent(parentBookmarkId);
+    let parentId: string | undefined;
+    if (parentBookmarkId) {
+      if (isRootContainerBookmarkId(parentBookmarkId)) {
+        parentId = null as unknown as undefined;
+      } else if (parentBookmarkId === browserBookmarksRootId) {
+        parentId = undefined;
+      } else {
+        parentId = `bb-${parentBookmarkId}`;
+      }
+    }
+
+    const position = typeof node.index === 'number' ? node.index : existing?.position ?? 0;
+
+    const nextItem: GridItem = {
+      id: gridId,
+      type: node.url ? 'shortcut' : 'bookmarkFolder',
+      size: existing?.size ?? '1x1',
+      position,
+      groupId,
+      parentId,
+      browserBookmarkId: node.id,
+      shortcut: node.url
+        ? {
+            url: node.url,
+            title: node.title || node.url,
+            favicon: existing?.shortcut?.favicon,
+            faviconBase64: existing?.shortcut?.faviconBase64,
+          }
+        : undefined,
+      bookmarkFolder: !node.url
+        ? {
+            title: node.title || existing?.bookmarkFolder?.title || '文件夹',
+          }
+        : undefined,
+      config: existing?.config,
+      createdAt: existing?.createdAt ?? Date.now(),
+    };
+
+    const preservedNonBrowser = gridItems.filter((i) => !i.browserBookmarkId);
+    const preservedBrowserOthers = gridItems.filter((i) => i.browserBookmarkId && i.id !== gridId);
+    const next = [...preservedNonBrowser, ...preservedBrowserOthers, nextItem];
+
+    set({ gridItems: next });
+    saveData();
+  },
+
+  removeBrowserBookmarkById: (bookmarkId) => {
+    const { gridItems, currentFolderId, saveData } = get();
+    const targetGridId = `bb-${bookmarkId}`;
+    const target = gridItems.find((i) => i.id === targetGridId);
+    if (!target) return;
+
+    let toDelete = new Set<string>([targetGridId]);
+    if (target.type === 'bookmarkFolder') {
+      let changed = true;
+      while (changed) {
+        changed = false;
+        for (const item of gridItems) {
+          const parentId = item.parentId;
+          if (parentId && toDelete.has(parentId) && !toDelete.has(item.id)) {
+            toDelete.add(item.id);
+            changed = true;
+          }
+        }
+      }
+    }
+
+    const filtered = gridItems.filter((i) => !toDelete.has(i.id));
+
+    const nextCurrentFolderId = currentFolderId && toDelete.has(currentFolderId) ? null : currentFolderId;
+    set({ gridItems: filtered, currentFolderId: nextCurrentFolderId });
+    saveData();
+  },
+
+  applyBrowserBookmarkChildrenOrder: (parentBookmarkId, orderedChildBookmarkIds) => {
+    const { gridItems, browserBookmarksRootId, saveData } = get();
+    if (!browserBookmarksRootId) return;
+
+    const parentId =
+      parentBookmarkId === browserBookmarksRootId
+        ? undefined
+        : isRootContainerBookmarkId(parentBookmarkId)
+          ? null as unknown as undefined
+          : `bb-${parentBookmarkId}`;
+    const posByBookmarkId = new Map(orderedChildBookmarkIds.map((id, index) => [id, index] as const));
+    const groupId = inferGroupIdFromBookmarkParent(parentBookmarkId);
+
+    const next = gridItems.map((item) => {
+      if (!item.browserBookmarkId) return item;
+      const nextPos = posByBookmarkId.get(item.browserBookmarkId);
+      if (nextPos === undefined) return item;
+      return {
+        ...item,
+        parentId,
+        groupId: !parentId ? groupId : item.groupId ?? groupId,
+        position: nextPos,
+      };
+    });
+
+    set({ gridItems: next });
+    saveData();
+  },
+
+  mirrorHomeItemsToBrowser: (ids) => {
+    ids.forEach((id) => {
+      void mirrorHomeItemToBrowser(id);
+    });
   },
 
   // 数据迁移：将旧的 shortcuts 迁移到 gridItems
@@ -813,4 +1547,5 @@ export const useNewtabStore = create<NewTabState>((set, get) => ({
 
 
   // 清空所有网格项
-}));
+  };
+});

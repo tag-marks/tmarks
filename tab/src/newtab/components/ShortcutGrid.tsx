@@ -33,6 +33,7 @@ import { AddFolderModal } from './AddFolderModal';
 import { Z_INDEX } from '../constants/z-index';
 import { AddShortcutModal } from './AddShortcutModal';
 import { DragOverlayItem } from './DragOverlayItem';
+import { ConfirmModal } from './ui/ConfirmModal';
 import { FAVICON_API } from '../constants';
 import type { Shortcut, ShortcutFolder } from '../types';
 
@@ -81,7 +82,7 @@ export function ShortcutGrid({ columns, style, onAddClick, onBatchEditClick }: S
   const isChangingRef = useRef(false);
 
   // 获取当前分组的快捷方式（不在文件夹内的）
-  const filteredShortcuts = getFilteredShortcuts();
+  const filteredShortcuts: Shortcut[] = getFilteredShortcuts();
   
   // 获取当前分组的文件夹
   const filteredFolders = shortcutFolders.filter(
@@ -99,7 +100,7 @@ export function ShortcutGrid({ columns, style, onAddClick, onBatchEditClick }: S
   // 合并所有项目用于排序
   const allItems: GridItemType[] = [
     ...filteredFolders.map(f => ({ ...f, itemType: 'folder' as const })),
-    ...filteredShortcuts.map(s => ({ ...s, itemType: 'shortcut' as const })),
+    ...filteredShortcuts.map((shortcut) => ({ ...shortcut, itemType: 'shortcut' as const })),
   ];
 
   // 分页计算
@@ -329,9 +330,16 @@ export function ShortcutGrid({ columns, style, onAddClick, onBatchEditClick }: S
   };
 
   const handleDeleteFolder = () => {
-    if (openFolderId && confirm('删除文件夹后，其中的快捷方式将移出。确定删除？')) {
+    if (openFolderId) {
+      setShowDeleteFolderConfirm(true);
+    }
+  };
+
+  const confirmDeleteFolder = () => {
+    if (openFolderId) {
       removeFolder(openFolderId);
       setOpenFolderId(null);
+      setShowDeleteFolderConfirm(false);
     }
   };
 
@@ -351,6 +359,7 @@ export function ShortcutGrid({ columns, style, onAddClick, onBatchEditClick }: S
 
   // 添加菜单状态
   const [showAddMenu, setShowAddMenu] = useState(false);
+  const [showDeleteFolderConfirm, setShowDeleteFolderConfirm] = useState(false);
 
   // 处理添加菜单切换
   const handleToggleAddMenu = () => {
@@ -524,6 +533,18 @@ export function ShortcutGrid({ columns, style, onAddClick, onBatchEditClick }: S
           groupName={openFolder?.name}
         />
       )}
+
+      {/* 删除文件夹确认弹窗 */}
+      <ConfirmModal
+        isOpen={showDeleteFolderConfirm}
+        title="删除文件夹"
+        message="删除文件夹后，其中的快捷方式将移出。确定删除？"
+        confirmText="删除"
+        cancelText="取消"
+        confirmVariant="danger"
+        onConfirm={confirmDeleteFolder}
+        onCancel={() => setShowDeleteFolderConfirm(false)}
+      />
     </>
   );
 }

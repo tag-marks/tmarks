@@ -11,11 +11,12 @@ import { StorageService } from '@/lib/utils/storage';
 
 interface ModeSelectorProps {
   onSelectBookmark: () => void;
+  onSelectNewTab: () => void;
   onSelectTabCollection: () => void;
   onOpenOptions: () => void;
 }
 
-export function ModeSelector({ onSelectBookmark, onSelectTabCollection, onOpenOptions }: ModeSelectorProps) {
+export function ModeSelector({ onSelectBookmark, onSelectNewTab, onSelectTabCollection, onOpenOptions }: ModeSelectorProps) {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [tmarksUrls, setTmarksUrls] = useState(getTMarksUrls());
 
@@ -150,6 +151,36 @@ export function ModeSelector({ onSelectBookmark, onSelectTabCollection, onOpenOp
                   <span className="rounded-md bg-[color:var(--tab-popup-badge-blue-bg)] px-1.5 py-0.5 text-[var(--tab-popup-badge-blue-text)]">AI 推荐</span>
                   <span className="rounded-md bg-[color:var(--tab-popup-badge-indigo-bg)] px-1.5 py-0.5 text-[var(--tab-popup-badge-indigo-text)]">智能标签</span>
                   <span className="rounded-md bg-[color:var(--tab-popup-badge-purple-bg)] px-1.5 py-0.5 text-[var(--tab-popup-badge-purple-text)]">云端同步</span>
+                </div>
+              </div>
+              <svg className="h-5 w-5 text-[var(--tab-text-muted)] transition-transform duration-200 group-hover:translate-x-1 group-hover:text-[var(--tab-message-info-icon)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            </div>
+          </button>
+
+          <button
+            onClick={onSelectNewTab}
+            className="group w-full rounded-xl border border-[color:var(--tab-border)] bg-[color:var(--tab-surface)] p-4 text-left shadow-lg transition-all duration-200 hover:scale-[1.02] hover:border-[color:var(--tab-border-strong)] hover:shadow-xl active:scale-[0.98]"
+          >
+            <div className="flex items-start gap-3">
+              <div
+                className="flex h-12 w-12 items-center justify-center rounded-xl shadow-lg transition-transform duration-200 group-hover:scale-110"
+                style={{
+                  background: `linear-gradient(135deg, var(--tab-popup-section-emerald-from), var(--tab-popup-section-emerald-to))`,
+                }}
+              >
+                <svg className="h-5 w-5 text-[var(--tab-popup-section-emerald-icon)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h2 className="text-base font-semibold text-[var(--tab-text)]">保存到 NewTab</h2>
+                <p className="mt-0.5 text-xs text-[var(--tab-text-muted)]">保存当前页面到浏览器书签（NewTab 双向同步）</p>
+                <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] text-[var(--tab-text-muted)]">
+                  <span className="rounded-md bg-[var(--tab-popup-section-blue-badge-bg)] px-1.5 py-0.5 text-[var(--tab-popup-section-blue-badge-text)]">文件夹</span>
+                  <span className="rounded-md bg-[var(--tab-popup-badge-indigo-bg)] px-1.5 py-0.5 text-[var(--tab-popup-badge-indigo-text)]">书签栏</span>
+                  <span className="rounded-md bg-[var(--tab-popup-badge-purple-bg)] px-1.5 py-0.5 text-[var(--tab-popup-badge-purple-text)]">本地同步</span>
                 </div>
               </div>
               <svg className="h-5 w-5 text-[var(--tab-text-muted)] transition-transform duration-200 group-hover:translate-x-1 group-hover:text-[var(--tab-message-info-icon)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

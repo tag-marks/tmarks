@@ -8,6 +8,7 @@ export interface ShortcutGroup {
   name: string;
   icon: string; // Lucide 图标名称
   position: number;
+  bookmarkFolderId?: string | null;
 }
 
 // 快捷方式文件夹（可包含多个快捷方式）
@@ -69,7 +70,7 @@ export interface GridItem {
   size: GridItemSize;
   position: number;
   groupId?: string;
-  parentId?: string;
+  parentId?: string | null;
   browserBookmarkId?: string;
   // 快捷方式数据（仅 type='shortcut' 时使用）
   shortcut?: {
@@ -173,6 +174,23 @@ export interface NewTabSettings {
   
   // 热搜类型（用于网格组件配置）
   hotSearchType: HotSearchType;
+
+  enableWorkspaceAiOrganize?: boolean;
+  workspaceAiOrganizeRules?: string;
+  workspaceAiOrganizeMaxBookmarks?: number;
+  enableHistoryHeat?: boolean;
+  historyDays?: number;
+  historyHeatTopN?: number;
+  workspaceAiOrganizeStrictHierarchy?: boolean;
+  workspaceAiOrganizeAllowNewFolders?: boolean;
+  workspaceAiOrganizePreferOriginalPaths?: boolean;
+  workspaceAiOrganizeVerboseLogs?: boolean;
+  workspaceAiOrganizeTopLevelCount?: number;
+
+  enableWorkspaceAiOrganizeCustomPrompt?: boolean;
+  workspaceAiOrganizePrompt?: string;
+
+  showEditGuide?: boolean;
 
 
 }

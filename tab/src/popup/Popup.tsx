@@ -12,7 +12,25 @@ import { TabCollectionView } from './TabCollectionView';
 import { getExistingTagClass, getSelectedTagClass, type TagTheme } from '@/lib/utils/tagStyles';
 import { applyTheme, applyThemeStyle } from '@/lib/utils/themeManager';
 
-type ViewMode = 'selector' | 'bookmark' | 'tabCollection';
+type ViewMode = 'selector' | 'bookmark' | 'newtab' | 'tabCollection';
+
+async function sendMessage<T = any>(message: { type: string; payload?: any }): Promise<T> {
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage(message, (response: any) => {
+      if (chrome.runtime.lastError) {
+        reject(new Error(chrome.runtime.lastError.message));
+        return;
+      }
+
+      if (!response?.success) {
+        reject(new Error(response?.error || 'Unknown error'));
+        return;
+      }
+
+      resolve(response.data as T);
+    });
+  });
+}
 
 export function Popup() {
   const {
@@ -34,6 +52,8 @@ export function Popup() {
     recommendTags,
     saveBookmark,
     setError,
+    setSuccessMessage,
+    setLoadingMessage,
     toggleTag,
     addCustomTag,
     setCurrentPage,
@@ -50,6 +70,15 @@ export function Popup() {
     lastRecommendationSource,
     lastSaveDurationMs
   } = useAppStore();
+
+  const [newtabRootId, setNewtabRootId] = useState<string | null>(null);
+  const [newtabFolders, setNewtabFolders] = useState<Array<{ id: string; title: string; parentId: string | null; path: string }>>([]);
+  const [currentNewtabFolderId, setCurrentNewtabFolderId] = useState<string | null>(null);
+  const [newtabBreadcrumb, setNewtabBreadcrumb] = useState<Array<{ id: string; title: string }>>([]);
+  const [newtabSuggestions, setNewtabSuggestions] = useState<Array<{ id: string; path: string; confidence: number }>>([]);
+  const [isNewtabRecommending, setIsNewtabRecommending] = useState(false);
+  const [newtabFoldersLoaded, setNewtabFoldersLoaded] = useState(false);
+  const [newtabFoldersLoadError, setNewtabFoldersLoadError] = useState<string | null>(null);
 
   const [customTagInput, setCustomTagInput] = useState('');
   const [titleOverride, setTitleOverride] = useState('');
@@ -127,6 +156,24 @@ export function Popup() {
     init();
   }, [config, viewMode]);
 
+  // Initialize after config is loaded (only for newtab mode)
+  useEffect(() => {
+    if (initialized || viewMode !== 'newtab') return;
+
+    const init = async () => {
+      try {
+        await extractPageInfo();
+        await loadNewtabFolders();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to initialize');
+      } finally {
+        setInitialized(true);
+      }
+    };
+
+    init();
+  }, [initialized, viewMode]);
+
   const handleSave = async () => {
     // AI 书签助手需要标签来组织和分类书签
     if (selectedTags.length === 0) {
@@ -142,6 +189,73 @@ export function Popup() {
     if (tagName) {
       addCustomTag(tagName);
       setCustomTagInput('');
+    }
+  };
+
+  const loadNewtabFolders = async () => {
+    try {
+      setNewtabFoldersLoadError(null);
+      const resp = await sendMessage<{ rootId: string; folders: Array<{ id: string; title: string; parentId: string | null; path: string }> }>({
+        type: 'GET_NEWTAB_FOLDERS',
+      });
+      setNewtabRootId(resp.rootId);
+      setNewtabFolders(resp.folders);
+      setCurrentNewtabFolderId(resp.rootId);
+      const root = resp.folders.find((f) => f.id === resp.rootId);
+      setNewtabBreadcrumb(root ? [{ id: root.id, title: root.title }] : []);
+      setNewtabFoldersLoaded(true);
+    } catch (e) {
+      setNewtabFoldersLoaded(false);
+      setNewtabFoldersLoadError(e instanceof Error ? e.message : '加载文件夹失败');
+      setNewtabRootId(null);
+      setNewtabFolders([]);
+      setCurrentNewtabFolderId(null);
+      setNewtabBreadcrumb([]);
+    }
+  };
+
+  const enterNewtabFolder = (folderId: string) => {
+    const folder = newtabFolders.find((f) => f.id === folderId);
+    if (!folder) return;
+    setCurrentNewtabFolderId(folderId);
+
+    const chain: Array<{ id: string; title: string }> = [];
+    let cursor: typeof folder | undefined = folder;
+    const seen = new Set<string>();
+    while (cursor && !seen.has(cursor.id)) {
+      seen.add(cursor.id);
+      chain.push({ id: cursor.id, title: cursor.title });
+      cursor = cursor.parentId ? newtabFolders.find((f) => f.id === cursor!.parentId) : undefined;
+    }
+    setNewtabBreadcrumb(chain.reverse());
+  };
+
+  const handleRecommendNewtabFolder = async () => {
+    if (!currentPage?.url) {
+      setError('未获取到页面信息');
+      return;
+    }
+
+    if (!newtabFoldersLoaded) {
+      setNewtabFoldersLoadError('目录列表未加载，暂时无法进行 AI 文件夹推荐。你仍可直接保存到根目录。');
+      return;
+    }
+
+    try {
+      setIsNewtabRecommending(true);
+      const resp = await sendMessage<{ suggestedFolders: Array<{ id: string; path: string; confidence: number }> }>({
+        type: 'RECOMMEND_NEWTAB_FOLDER',
+        payload: {
+          title: currentPage.title,
+          url: currentPage.url,
+          description: currentPage.description,
+        },
+      });
+      setNewtabSuggestions(resp.suggestedFolders || []);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'AI 推荐失败');
+    } finally {
+      setIsNewtabRecommending(false);
     }
   };
 
@@ -191,8 +305,87 @@ export function Popup() {
     setViewMode('tabCollection');
   };
 
+  const handleSelectNewTab = () => {
+    setViewMode('newtab');
+    setInitialized(false);
+  };
+
   const handleBackToSelector = () => {
     setViewMode('selector');
+  };
+
+  const handleSaveToNewTab = async () => {
+    if (!currentPage?.url) {
+      setError('未获取到页面信息');
+      return;
+    }
+
+    try {
+      setLoadingMessage('正在准备保存到 NewTab...');
+
+      let targetFolderId = currentNewtabFolderId || undefined;
+      if (!newtabFoldersLoaded) {
+        targetFolderId = undefined;
+      }
+
+      const shouldUseNewtabAI = Boolean(
+        config &&
+          config.preferences.enableNewtabAI &&
+          config.aiConfig.apiKeys[config.aiConfig.provider]
+      );
+
+      if (shouldUseNewtabAI && newtabFoldersLoaded) {
+        try {
+          setLoadingMessage('AI 正在推荐 NewTab 文件夹...');
+          const resp = await sendMessage<{ suggestedFolders: Array<{ id: string; path: string; confidence: number }> }>({
+            type: 'RECOMMEND_NEWTAB_FOLDER',
+            payload: {
+              title: currentPage.title,
+              url: currentPage.url,
+              description: currentPage.description,
+            },
+          });
+
+          const suggestions = resp?.suggestedFolders || [];
+          setNewtabSuggestions(suggestions);
+          if (suggestions.length > 0) {
+            targetFolderId = suggestions[0].id;
+          }
+        } catch {
+          // ignore AI errors and fallback to current folder selection
+        }
+      }
+
+      setLoadingMessage('正在保存到 NewTab...');
+      await sendMessage<{ id: string }>({
+        type: 'SAVE_TO_NEWTAB',
+        payload: {
+          url: currentPage.url,
+          title: currentPage.title,
+          parentBookmarkId: targetFolderId,
+        },
+      });
+
+      setLoadingMessage(null);
+      setSuccessMessage('✅ 已保存到 NewTab');
+
+      chrome.notifications.create({
+        type: 'basic',
+        iconUrl: '/icons/icon-128.png',
+        title: 'AI 书签助手',
+        message: `《${currentPage.title}》已保存到 NewTab`,
+      });
+
+      const toastSnapshot = '✅ 已保存到 NewTab';
+      setTimeout(() => {
+        if (useAppStore.getState().successMessage === toastSnapshot) {
+          useAppStore.getState().setSuccessMessage(null);
+        }
+      }, 2000);
+    } catch (e) {
+      setLoadingMessage(null);
+      setError(e instanceof Error ? e.message : '保存失败');
+    }
   };
 
   // Show mode selector first
@@ -200,6 +393,7 @@ export function Popup() {
     return (
       <ModeSelector
         onSelectBookmark={handleSelectBookmark}
+        onSelectNewTab={handleSelectNewTab}
         onSelectTabCollection={handleSelectTabCollection}
         onOpenOptions={openOptions}
       />
@@ -336,21 +530,25 @@ export function Popup() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
               </svg>
             </button>
-            {isAIEnabled ? (
+            {viewMode === 'bookmark' && isAIEnabled ? (
               <span className="inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-[var(--tab-popup-badge-blue-bg)] px-2 py-1 text-[10px] text-[var(--tab-popup-badge-blue-text)] font-medium">
                 推荐 {recommendedTags.length}
               </span>
-            ) : (
+            ) : viewMode === 'bookmark' ? (
               <span className="inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-[var(--tab-popup-badge-amber-bg)] px-2 py-1 text-[10px] text-[var(--tab-popup-badge-amber-text)] font-medium">
                 AI 关闭
               </span>
+            ) : null}
+            {viewMode === 'bookmark' && (
+              <>
+                <span className="inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-[var(--tab-popup-badge-indigo-bg)] px-2 py-1 text-[10px] text-[var(--tab-popup-badge-indigo-text)] font-medium">
+                  已选 {selectedTags.length}
+                </span>
+                <span className="inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-[var(--tab-popup-badge-purple-bg)] px-2 py-1 text-[10px] text-[var(--tab-popup-badge-purple-text)] font-medium">
+                  库 {existingTags.length}
+                </span>
+              </>
             )}
-            <span className="inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-[var(--tab-popup-badge-indigo-bg)] px-2 py-1 text-[10px] text-[var(--tab-popup-badge-indigo-text)] font-medium">
-              已选 {selectedTags.length}
-            </span>
-            <span className="inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-[var(--tab-popup-badge-purple-bg)] px-2 py-1 text-[10px] text-[var(--tab-popup-badge-purple-text)] font-medium">
-              库 {existingTags.length}
-            </span>
             <div className="ml-auto flex gap-1.5">
               <button
                 onClick={() => window.close()}
@@ -358,28 +556,134 @@ export function Popup() {
               >
                 取消
               </button>
-              <button
-                onClick={handleSave}
-                disabled={isSaving || selectedTags.length === 0}
-                className="rounded-lg bg-gradient-to-r from-[var(--tab-popup-primary-from)] to-[var(--tab-popup-primary-via)] px-4 py-1.5 text-[11px] font-semibold text-[var(--tab-popup-primary-text)] shadow-sm transition-all duration-200 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-40 active:scale-95"
-              >
-                {isSaving ? (
-                  <span className="flex items-center justify-center gap-1">
-                    <svg className="h-3.5 w-3.5 animate-spin text-[var(--tab-popup-primary-text)]" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
-                    保存中
-                  </span>
-                ) : (
-                  '保存书签'
-                )}
-              </button>
+              {viewMode === 'bookmark' ? (
+                <button
+                  onClick={handleSave}
+                  disabled={isSaving || selectedTags.length === 0}
+                  className="rounded-lg bg-gradient-to-r from-[var(--tab-popup-primary-from)] to-[var(--tab-popup-primary-via)] px-4 py-1.5 text-[11px] font-semibold text-[var(--tab-popup-primary-text)] shadow-sm transition-all duration-200 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-40 active:scale-95"
+                >
+                  {isSaving ? (
+                    <span className="flex items-center justify-center gap-1">
+                      <svg className="h-3.5 w-3.5 animate-spin text-[var(--tab-popup-primary-text)]" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      保存中
+                    </span>
+                  ) : (
+                    '保存书签'
+                  )}
+                </button>
+              ) : (
+                <button
+                  onClick={handleSaveToNewTab}
+                  disabled={isSaving || !currentPage?.url}
+                  className="rounded-lg bg-gradient-to-r from-[var(--tab-popup-primary-from)] to-[var(--tab-popup-primary-via)] px-4 py-1.5 text-[11px] font-semibold text-[var(--tab-popup-primary-text)] shadow-sm transition-all duration-200 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-40 active:scale-95"
+                >
+                  保存到 NewTab
+                </button>
+              )}
             </div>
           </div>
         </header>
 
         <main className="relative flex-1 space-y-2.5 overflow-y-auto px-4 pb-[70px] pt-[60px] bg-[var(--tab-popup-bg)]">
+          {viewMode === 'newtab' && (
+            <>
+              <section className="rounded-xl border border-[var(--tab-popup-section-gray-border)] bg-[var(--tab-popup-section-gray-bg)] p-3.5 shadow-lg">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-[var(--tab-popup-text)]">保存到 NewTab</p>
+                    <p className="mt-1 text-xs text-[var(--tab-popup-text-muted)]">选择文件夹后保存，或使用 AI 推荐。</p>
+                  </div>
+                  <span className="rounded-full bg-[var(--tab-popup-section-blue-badge-bg)] px-2 py-0.5 text-xs font-medium text-[var(--tab-popup-section-blue-badge-text)]">NewTab</span>
+                </div>
+                {newtabFoldersLoadError && (
+                  <div className="mt-2 rounded-lg border border-[var(--tab-popup-border-strong)] bg-[var(--tab-popup-surface)] px-3 py-2 text-xs text-[var(--tab-popup-text-muted)]">
+                    {newtabFoldersLoadError}
+                  </div>
+                )}
+                {newtabBreadcrumb.length > 0 && (
+                  <div className="mt-3 flex flex-wrap items-center gap-1 text-xs text-[var(--tab-popup-text-muted)]">
+                    {newtabBreadcrumb.map((c, idx) => (
+                      <button
+                        key={c.id}
+                        onClick={() => enterNewtabFolder(c.id)}
+                        className="rounded-md bg-[var(--tab-popup-action-neutral-bg)] px-2 py-1 hover:bg-[var(--tab-popup-action-neutral-bg-hover)] transition-colors"
+                      >
+                        {idx === 0 ? '根目录' : c.title}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <div className="mt-3 flex items-center gap-2">
+                  <button
+                    onClick={handleRecommendNewtabFolder}
+                    disabled={isNewtabRecommending || !currentPage?.url || !newtabFoldersLoaded}
+                    className="rounded-lg border border-[var(--tab-popup-border-strong)] bg-[var(--tab-popup-surface)] px-3 py-2 text-xs font-medium text-[var(--tab-popup-text)] transition-all duration-200 hover:bg-[var(--tab-popup-action-neutral-bg)] disabled:opacity-40"
+                  >
+                    {isNewtabRecommending ? 'AI 推荐中...' : 'AI 推荐文件夹'}
+                  </button>
+                  <button
+                    onClick={loadNewtabFolders}
+                    className="rounded-lg border border-[var(--tab-popup-border-strong)] bg-[var(--tab-popup-surface)] px-3 py-2 text-xs font-medium text-[var(--tab-popup-text)] transition-all duration-200 hover:bg-[var(--tab-popup-action-neutral-bg)]"
+                  >
+                    刷新文件夹
+                  </button>
+                </div>
+              </section>
+
+              {newtabSuggestions.length > 0 && (
+                <section className="rounded-xl border border-[var(--tab-popup-section-purple-border)] bg-gradient-to-br from-[var(--tab-popup-section-purple-from)] to-[var(--tab-popup-section-purple-to)] p-3.5 shadow-lg">
+                  <div className="mb-2 flex items-center justify-between">
+                    <p className="text-sm font-semibold text-[var(--tab-popup-text)]">AI 推荐文件夹</p>
+                    <span className="rounded-full bg-[var(--tab-popup-section-purple-badge-bg)] px-2 py-0.5 text-xs font-medium text-[var(--tab-popup-section-purple-badge-text)]">
+                      {newtabSuggestions.length}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {newtabSuggestions.map((s) => (
+                      <button
+                        key={s.id}
+                        onClick={() => enterNewtabFolder(s.id)}
+                        className="inline-flex items-center rounded-lg bg-[var(--tab-popup-action-neutral-bg)] px-2.5 py-1 text-xs font-medium text-[var(--tab-popup-text)] hover:bg-[var(--tab-popup-action-neutral-bg-hover)] transition-colors"
+                        title={s.path}
+                      >
+                        <span className="truncate max-w-[240px]">{s.path.replace(/^Tmakrs\//, '')}</span>
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              <section className="rounded-xl border border-[var(--tab-popup-section-emerald-border)] bg-gradient-to-br from-[var(--tab-popup-section-emerald-from)] to-[var(--tab-popup-section-emerald-to)] p-3.5 shadow-lg">
+                <div className="mb-2 flex items-center justify-between">
+                  <p className="text-sm font-semibold text-[var(--tab-popup-text)]">选择文件夹</p>
+                  <span className="text-xs text-[var(--tab-popup-text-muted)]">点击进入</span>
+                </div>
+                <div className="max-h-48 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-[var(--tab-popup-border-strong)] scrollbar-track-transparent">
+                  <div className="space-y-1">
+                    {newtabFolders
+                      .filter((f) => f.parentId === (currentNewtabFolderId || newtabRootId))
+                      .filter((f) => f.id !== (currentNewtabFolderId || newtabRootId))
+                      .map((f) => (
+                        <button
+                          key={f.id}
+                          onClick={() => enterNewtabFolder(f.id)}
+                          className="w-full flex items-center justify-between rounded-lg bg-[var(--tab-popup-action-neutral-bg)] px-3 py-2 text-left text-sm text-[var(--tab-popup-text)] hover:bg-[var(--tab-popup-action-neutral-bg-hover)] transition-colors"
+                        >
+                          <span className="truncate">{f.title}</span>
+                          <span className="text-xs text-[var(--tab-popup-text-muted)]">进入</span>
+                        </button>
+                      ))}
+                    {newtabFolders.filter((f) => f.parentId === (currentNewtabFolderId || newtabRootId)).length === 0 && (
+                      <div className="py-4 text-center text-xs text-[var(--tab-popup-text-muted)]">当前层级没有子文件夹</div>
+                    )}
+                  </div>
+                </div>
+              </section>
+            </>
+          )}
           {isRecommending && (
             <section className="flex items-center gap-3 rounded-xl border border-[var(--tab-popup-border)] bg-[var(--tab-popup-section-gray-bg)] p-3.5 text-sm text-[var(--tab-popup-text)] shadow-lg">
               <LoadingSpinner />
@@ -579,7 +883,7 @@ export function Popup() {
             </section>
           )}
 
-          {recommendedTags.length > 0 && (
+          {viewMode === 'bookmark' && recommendedTags.length > 0 && (
             <section className="rounded-xl border border-[var(--tab-popup-section-purple-border)] bg-gradient-to-br from-[var(--tab-popup-section-purple-from)] to-[var(--tab-popup-section-purple-to)] p-3.5 shadow-lg">
               <div className="mb-2.5 flex items-center justify-between">
                 <div>
@@ -596,7 +900,8 @@ export function Popup() {
             </section>
           )}
 
-          <section className="rounded-xl border border-[var(--tab-popup-section-emerald-border)] bg-gradient-to-br from-[var(--tab-popup-section-emerald-from)] to-[var(--tab-popup-section-emerald-to)] p-3.5 shadow-lg">
+          {viewMode === 'bookmark' && (
+            <section className="rounded-xl border border-[var(--tab-popup-section-emerald-border)] bg-gradient-to-br from-[var(--tab-popup-section-emerald-from)] to-[var(--tab-popup-section-emerald-to)] p-3.5 shadow-lg">
             <div className="mb-2.5 flex items-center justify-between">
               <div>
                 <h2 className="flex items-center gap-2 text-sm font-semibold text-[var(--tab-popup-text)]">
@@ -648,7 +953,8 @@ export function Popup() {
                 </div>
               )}
             </div>
-          </section>
+            </section>
+          )}
 
           {lastSaveDurationMs !== null && (
             <section className="rounded-xl border border-[var(--tab-popup-section-gray-border)] bg-[var(--tab-popup-section-gray-bg)] p-2.5 text-xs text-[var(--tab-popup-text-muted)] shadow-sm">
@@ -659,6 +965,7 @@ export function Popup() {
 
         {/* Fixed Footer - Custom Tag Input */}
         <footer className="fixed bottom-0 left-0 right-0 z-20 px-3 pt-2 pb-2.5 bg-[var(--tab-popup-footer-bg)] border-t border-[var(--tab-popup-footer-border)] shadow-sm rounded-t-2xl">
+          {viewMode !== 'bookmark' ? null : (
           <div className="flex items-center gap-2">
             <svg className="h-4 w-4 flex-shrink-0 text-[var(--tab-popup-text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -679,6 +986,7 @@ export function Popup() {
               添加
             </button>
           </div>
+          )}
         </footer>
 
       </div>

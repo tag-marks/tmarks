@@ -3,8 +3,8 @@
  * 支持不同尺寸的组件和拖拽排序
  */
 
-import { useState, useCallback, useMemo } from 'react';
-import { Plus, Settings2, Check, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
+import { Plus, Settings2, Check } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -29,12 +29,16 @@ import { WidgetSelector } from './widgets/WidgetSelector';
 import { WidgetConfigModal } from './widgets/WidgetConfigModal';
 import { AddShortcutModal } from './AddShortcutModal';
 import { AddBookmarkFolderModal } from './AddBookmarkFolderModal';
+import { BookmarkFolderModal } from './BookmarkFolderModal';
 import { FAVICON_API } from '../constants';
 import type { GridItem, GridItemType } from '../types';
 import { getSizeSpan } from './widgets/widgetRegistry';
 
 interface WidgetGridProps {
   columns: 6 | 8 | 10;
+  isBatchMode?: boolean;
+  batchSelectedIds?: Set<string>;
+  onBatchSelectedIdsChange?: (next: Set<string>) => void;
 }
 
 // 可排序的网格项包装器
@@ -44,12 +48,20 @@ function SortableGridItem({
   onRemove,
   isEditing,
   onConfigClick,
+  onOpenFolder,
+  isBatchMode,
+  isSelected,
+  onToggleSelect,
 }: {
   item: GridItem;
   onUpdate?: (id: string, updates: Partial<GridItem>) => void;
   onRemove?: (id: string) => void;
   isEditing?: boolean;
   onConfigClick?: (item: GridItem) => void;
+  onOpenFolder?: (folderId: string) => void;
+  isBatchMode?: boolean;
+  isSelected?: boolean;
+  onToggleSelect?: (id: string) => void;
 }) {
   const { cols, rows } = getSizeSpan(item.size);
   const {
@@ -59,7 +71,7 @@ function SortableGridItem({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: item.id, disabled: !isEditing });
+  } = useSortable({ id: item.id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -90,12 +102,16 @@ function SortableGridItem({
         onUpdate={onUpdate}
         onRemove={onRemove}
         isEditing={isEditing}
+        onOpenFolder={onOpenFolder}
+        isBatchMode={isBatchMode}
+        isSelected={isSelected}
+        onToggleSelect={onToggleSelect}
       />
     </div>
   );
 }
 
-export function WidgetGrid({ columns }: WidgetGridProps) {
+export function WidgetGrid({ columns, isBatchMode, batchSelectedIds, onBatchSelectedIdsChange }: WidgetGridProps) {
   const {
     shortcutGroups,
     activeGroupId,
@@ -117,6 +133,7 @@ export function WidgetGrid({ columns }: WidgetGridProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [configItem, setConfigItem] = useState<GridItem | null>(null);
+  const [openFolderId, setOpenFolderId] = useState<string | null>(null);
 
   // 首次加载时尝试迁移数据
   useMemo(() => {
@@ -126,21 +143,17 @@ export function WidgetGrid({ columns }: WidgetGridProps) {
   // 获取当前分组的网格项
   const filteredItems = getFilteredGridItems();
 
-  const folderPath = useMemo(() => {
-    if (!currentFolderId) return [] as GridItem[];
-    const byId = new Map(gridItems.map((i) => [i.id, i] as const));
-    const path: GridItem[] = [];
-    let cursor: string | null = currentFolderId;
+  const openFolder = useMemo(
+    () => (openFolderId ? gridItems.find((item) => item.id === openFolderId && item.type === 'bookmarkFolder') ?? null : null),
+    [gridItems, openFolderId]
+  );
 
-    while (cursor) {
-      const item = byId.get(cursor);
-      if (!item || item.type !== 'bookmarkFolder') break;
-      path.unshift(item);
-      cursor = item.parentId ?? null;
-    }
-
-    return path;
-  }, [currentFolderId, gridItems]);
+  const openFolderItems = useMemo(() => {
+    if (!openFolder) return [];
+    return gridItems
+      .filter((item) => (item.parentId ?? null) === openFolder.id)
+      .sort((a, b) => a.position - b.position);
+  }, [gridItems, openFolder]);
 
   // 当前分组名称
   const currentGroupName = activeGroupId
@@ -173,6 +186,35 @@ export function WidgetGrid({ columns }: WidgetGridProps) {
       setActiveId(null);
 
       if (!over || active.id === over.id) return;
+
+      const overId = String(over.id);
+
+      if (overId.startsWith('folder-modal-undock-parent:')) {
+        // Supported formats:
+        // - folder-modal-undock-parent:<sourceFolderGridId>
+        // - folder-modal-undock-parent:<sourceFolderGridId>:<targetParentGridId|root>
+        const payload = overId.replace('folder-modal-undock-parent:', '');
+        const [sourceFolderId, targetParentToken] = payload.split(':');
+        const targetParentId =
+          !targetParentToken || targetParentToken === 'root'
+            ? null
+            : (targetParentToken as string);
+
+        // Backward compatible fallback (if token missing)
+        if (!targetParentToken) {
+          const sourceFolder = gridItems.find((item) => item.id === sourceFolderId);
+          moveGridItemToFolder(active.id as string, (sourceFolder?.parentId ?? null) as string | null);
+          return;
+        }
+
+        moveGridItemToFolder(active.id as string, targetParentId);
+        return;
+      }
+
+      if (overId.startsWith('folder-modal-undock-root:')) {
+        moveGridItemToFolder(active.id as string, null);
+        return;
+      }
 
       const overItem = gridItems.find((item) => item.id === over.id);
       if (overItem?.type === 'bookmarkFolder') {
@@ -217,6 +259,29 @@ export function WidgetGrid({ columns }: WidgetGridProps) {
     [addGridItem, activeGroupId]
   );
 
+  const handleOpenFolder = useCallback((folderId: string) => {
+    setOpenFolderId(folderId);
+  }, []);
+
+  const handleToggleSelect = useCallback(
+    (id: string) => {
+      if (!onBatchSelectedIdsChange) return;
+      const prev = batchSelectedIds ?? new Set<string>();
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      onBatchSelectedIdsChange(next);
+    },
+    [batchSelectedIds, onBatchSelectedIdsChange]
+  );
+
+  useEffect(() => {
+    if (currentFolderId) {
+      setOpenFolderId(currentFolderId);
+      setCurrentFolderId(null);
+    }
+  }, [currentFolderId, setCurrentFolderId]);
+
   // 获取当前拖拽的项
   const activeItem = activeId
     ? gridItems.find((item) => item.id === activeId)
@@ -225,135 +290,29 @@ export function WidgetGrid({ columns }: WidgetGridProps) {
   // 空状态
   if (filteredItems.length === 0) {
     return (
-      <>
-        {folderPath.length > 0 && (
-          <div className="w-full max-w-5xl px-2 mb-4 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-white/70 text-sm">
-              <button
-                onClick={() => {
-                  const current = folderPath[folderPath.length - 1];
-                  setCurrentFolderId(current?.parentId ?? null);
-                }}
-                className="px-2 py-1 rounded-lg glass hover:bg-white/20 transition-colors flex items-center gap-1"
-                title="返回"
-              >
-                <ChevronLeft className="w-4 h-4" />
-                返回
-              </button>
-              <span className="text-white/40">/</span>
-              {folderPath.map((f, idx) => (
-                <span key={f.id} className="flex items-center gap-2">
-                  <button
-                    onClick={() => setCurrentFolderId(f.id)}
-                    className="hover:text-white transition-colors"
-                  >
-                    {f.bookmarkFolder?.title || '文件夹'}
-                  </button>
-                  {idx < folderPath.length - 1 && (
-                    <ChevronRight className="w-3.5 h-3.5 text-white/30" />
-                  )}
-                </span>
-              ))}
-            </div>
-            <button
-              onClick={() => setCurrentFolderId(null)}
-              className="px-2 py-1 rounded-lg glass hover:bg-white/20 transition-colors text-white/70 text-sm"
-              title="回到根目录"
-            >
-              根目录
-            </button>
-          </div>
-        )}
-
-        <div className="flex flex-col items-center gap-4">
-          <button
-            onClick={() => setShowWidgetSelector(true)}
-            className="w-16 h-16 rounded-2xl glass hover:bg-white/20 flex items-center justify-center transition-all group"
-            title="添加组件"
-          >
-            <Plus className="w-8 h-8 text-white/50 group-hover:text-white/80 transition-colors" />
-          </button>
-          <span className="text-sm text-white/50">点击添加组件</span>
-        </div>
-
-        <WidgetSelector
-          isOpen={showWidgetSelector}
-          onClose={() => setShowWidgetSelector(false)}
-          onSelect={handleAddWidget}
-        />
-
-        <AddShortcutModal
-          isOpen={showAddShortcut}
-          onClose={() => setShowAddShortcut(false)}
-          onAdd={handleAddShortcut}
-          groupName={currentGroupName}
-        />
-
-        <AddBookmarkFolderModal
-          isOpen={showAddFolder}
-          onClose={() => setShowAddFolder(false)}
-          onSave={(name) => {
-            addGridItem('bookmarkFolder', {
-              groupId: activeGroupId || undefined,
-              bookmarkFolder: { title: name },
-            });
-          }}
-        />
-      </>
+      <div className="flex flex-col items-center gap-4">
+        <button
+          onClick={() => setShowWidgetSelector(true)}
+          className="w-16 h-16 rounded-2xl glass hover:bg-white/20 flex items-center justify-center transition-all group"
+          title="添加组件"
+        >
+          <Plus className="w-8 h-8 text-white/50 group-hover:text-white/80 transition-colors" />
+        </button>
+        <span className="text-sm text-white/50">点击添加组件</span>
+      </div>
     );
   }
 
   return (
     <>
-      {folderPath.length > 0 && (
-        <div className="w-full max-w-5xl px-2 mb-4 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-white/70 text-sm">
-            <button
-              onClick={() => setCurrentFolderId(folderPath[folderPath.length - 1]?.parentId ?? null)}
-              className="px-2 py-1 rounded-lg glass hover:bg-white/20 transition-colors flex items-center gap-1"
-              title="返回"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              返回
-            </button>
-            <span className="text-white/40">/</span>
-            {folderPath.map((f, idx) => (
-              <span key={f.id} className="flex items-center gap-2">
-                <button
-                  onClick={() => setCurrentFolderId(f.id)}
-                  className="hover:text-white transition-colors"
-                >
-                  {f.bookmarkFolder?.title || '文件夹'}
-                </button>
-                {idx < folderPath.length - 1 && (
-                  <ChevronRight className="w-3.5 h-3.5 text-white/30" />
-                )}
-              </span>
-            ))}
-          </div>
-          <button
-            onClick={() => setCurrentFolderId(null)}
-            className="px-2 py-1 rounded-lg glass hover:bg-white/20 transition-colors text-white/70 text-sm"
-            title="回到根目录"
-          >
-            根目录
-          </button>
-        </div>
-      )}
-
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <SortableContext
-          items={filteredItems.map((item) => item.id)}
-          strategy={rectSortingStrategy}
-        >
-          <div
-            className={`grid ${gridCols[columns]} gap-4 auto-rows-[80px]`}
-          >
+        <SortableContext items={filteredItems.map((item) => item.id)} strategy={rectSortingStrategy}>
+          <div className={`grid ${gridCols[columns]} gap-4 auto-rows-[80px]`}>
             {filteredItems.map((item) => (
               <SortableGridItem
                 key={item.id}
@@ -362,10 +321,13 @@ export function WidgetGrid({ columns }: WidgetGridProps) {
                 onRemove={removeGridItem}
                 isEditing={isEditing}
                 onConfigClick={setConfigItem}
+                onOpenFolder={handleOpenFolder}
+                isBatchMode={isBatchMode}
+                isSelected={!!batchSelectedIds?.has(item.id)}
+                onToggleSelect={handleToggleSelect}
               />
             ))}
 
-            {/* 添加按钮 - 仅在编辑模式显示 */}
             {isEditing && (
               <button
                 onClick={() => setShowWidgetSelector(true)}
@@ -382,24 +344,27 @@ export function WidgetGrid({ columns }: WidgetGridProps) {
           </div>
         </SortableContext>
 
-        {/* 拖拽预览 */}
         <DragOverlay>
-          {activeItem && (
+          {activeItem ? (
             <div className="opacity-80">
-              <WidgetRenderer item={activeItem} />
+              <WidgetRenderer
+                item={activeItem}
+                onOpenFolder={handleOpenFolder}
+                isBatchMode={isBatchMode}
+                isSelected={!!batchSelectedIds?.has(activeItem.id)}
+                onToggleSelect={handleToggleSelect}
+              />
             </div>
-          )}
+          ) : null}
         </DragOverlay>
       </DndContext>
 
-      {/* 组件选择器 */}
       <WidgetSelector
         isOpen={showWidgetSelector}
         onClose={() => setShowWidgetSelector(false)}
         onSelect={handleAddWidget}
       />
 
-      {/* 添加快捷方式弹窗 */}
       <AddShortcutModal
         isOpen={showAddShortcut}
         onClose={() => setShowAddShortcut(false)}
@@ -418,7 +383,16 @@ export function WidgetGrid({ columns }: WidgetGridProps) {
         }}
       />
 
-      {/* 组件配置弹窗 */}
+      {openFolder ? (
+        <BookmarkFolderModal
+          folder={openFolder}
+          items={openFolderItems}
+          isOpen
+          onClose={() => setOpenFolderId(null)}
+          onOpenFolder={handleOpenFolder}
+        />
+      ) : null}
+
       {configItem && (
         <WidgetConfigModal
           item={configItem}
@@ -429,7 +403,6 @@ export function WidgetGrid({ columns }: WidgetGridProps) {
         />
       )}
 
-      {/* 编辑模式按钮 */}
       <div className="fixed bottom-6 right-6 z-40">
         <button
           onClick={() => setIsEditing(!isEditing)}
@@ -448,7 +421,6 @@ export function WidgetGrid({ columns }: WidgetGridProps) {
         </button>
       </div>
 
-      {/* 编辑模式提示 */}
       {isEditing && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 px-4 py-2 rounded-full glass text-sm text-white/80 animate-fadeIn">
           拖拽调整位置 · 双击配置组件 · 点击 ✓ 完成

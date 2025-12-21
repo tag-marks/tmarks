@@ -28,6 +28,8 @@ export const Z_INDEX = {
   // 模态框层 (100-119)
   MODAL_BACKDROP: 100,
   MODAL_CONTENT: 110,
+
+  DRAG_OVERLAY: 120,
   
   // 组件选择器层 (200-209) - 最高层级
   WIDGET_SELECTOR_BACKDROP: 200,

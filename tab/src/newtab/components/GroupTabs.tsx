@@ -5,6 +5,7 @@
 import { useState } from 'react';
 import { Plus, X, LayoutGrid, Folder, Home, Briefcase, GraduationCap, Gamepad2, Wrench, Code, Music, Film, ShoppingCart, Heart, Star, Bookmark, Globe, Zap } from 'lucide-react';
 import { useNewtabStore } from '../hooks/useNewtabStore';
+import { ConfirmModal } from './ui/ConfirmModal';
 import { GROUP_ICONS } from '../constants';
 
 // 图标映射
@@ -23,6 +24,7 @@ export function GroupTabs() {
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
   const [selectedIcon, setSelectedIcon] = useState('Folder');
+  const [deleteGroupId, setDeleteGroupId] = useState<string | null>(null);
 
   const handleAddGroup = () => {
     if (newGroupName.trim()) {
@@ -35,8 +37,13 @@ export function GroupTabs() {
 
   const handleRemoveGroup = (e: React.MouseEvent, groupId: string) => {
     e.stopPropagation();
-    if (confirm('删除分组后，该分组的快捷方式将移到"全部"。确定删除？')) {
-      removeGroup(groupId);
+    setDeleteGroupId(groupId);
+  };
+
+  const confirmRemoveGroup = () => {
+    if (deleteGroupId) {
+      removeGroup(deleteGroupId);
+      setDeleteGroupId(null);
     }
   };
 
@@ -83,7 +90,7 @@ export function GroupTabs() {
       <div className="relative">
         <button
           onClick={() => setShowAddMenu(!showAddMenu)}
-          className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-white/40 hover:text-white/70 hover:bg-white/10 transition-all"
+          className="flex items-center gap-1 px-2 py-1.5 rounded-xl text-white/40 hover:text-white/70 hover:bg-white/10 transition-all focus:outline-none focus:ring-2 focus:ring-white/20"
         >
           <Plus className="w-4 h-4" />
         </button>
@@ -124,7 +131,7 @@ export function GroupTabs() {
               <button
                 onClick={handleAddGroup}
                 disabled={!newGroupName.trim()}
-                className="w-full py-2 rounded-lg bg-white/20 hover:bg-white/30 text-white text-sm transition-colors disabled:opacity-50"
+                className="w-full py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white text-sm transition-colors disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-white/20"
               >
                 创建
               </button>
@@ -132,6 +139,18 @@ export function GroupTabs() {
           </>
         )}
       </div>
+
+      {/* 删除分组确认弹窗 */}
+      <ConfirmModal
+        isOpen={!!deleteGroupId}
+        title="删除分组"
+        message="删除分组后，该分组的快捷方式将移到「全部」。确定删除？"
+        confirmText="删除"
+        cancelText="取消"
+        confirmVariant="danger"
+        onConfirm={confirmRemoveGroup}
+        onCancel={() => setDeleteGroupId(null)}
+      />
     </div>
   );
 }

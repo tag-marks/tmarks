@@ -16,9 +16,9 @@ export function TMarksConfigSection({ formData, setFormData }: TMarksConfigSecti
       <div className="p-6 pt-10 space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-semibold text-[var(--tab-options-title)]">TMarks API 配置</h2>
+            <h2 className="text-xl font-semibold text-[var(--tab-options-title)]">同步设置</h2>
             <p className="mt-2 text-sm text-[var(--tab-options-text)]">
-              设置官方或自建 TMarks 服务端以同步书签与标签数据。
+              配置同步服务端（TMarks）以同步书签与标签数据。
             </p>
           </div>
           <span className="px-3 py-1 rounded-full bg-[color:var(--tab-options-tmarks-badge-bg)] text-xs font-medium text-[var(--tab-options-tmarks-badge-text)]">

@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { DEFAULT_PROMPT_TEMPLATE } from '@/lib/constants/prompts';
 import type { AIProvider, AIConnectionInfo } from '@/types';
 import { AI_SERVICE_URLS, AI_SERVICE_DOCS } from '@/lib/constants/urls';
 
@@ -9,13 +8,9 @@ interface AIConfigSectionProps {
     apiKey: string;
     apiUrl: string;
     aiModel: string;
-    enableCustomPrompt: boolean;
-    customPrompt: string;
-    maxSuggestedTags: number;
   };
   setFormData: (data: any) => void;
   handleProviderChange: (provider: AIProvider) => void;
-  setSuccessMessage: (msg: string | null) => void;
   handleTestConnection: () => Promise<void>;
   isTesting: boolean;
   availableModels: string[];
@@ -33,7 +28,6 @@ export function AIConfigSection({
   formData,
   setFormData,
   handleProviderChange,
-  setSuccessMessage,
   handleTestConnection,
   isTesting,
   availableModels,
@@ -445,20 +439,6 @@ export function AIConfigSection({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-[var(--tab-options-text)] mb-3">
-              最大推荐标签数
-            </label>
-            <input
-              type="number"
-              min="1"
-              max="10"
-              value={formData.maxSuggestedTags}
-              onChange={(e) => setFormData({ ...formData, maxSuggestedTags: parseInt(e.target.value) })}
-              className="w-full px-3 py-2 border border-[color:var(--tab-options-button-border)] rounded-lg bg-[color:var(--tab-options-card-bg)] text-[var(--tab-options-title)] focus:outline-none focus:ring-2 focus:ring-[var(--tab-options-button-primary-bg)]"
-            />
-          </div>
-
-          <div>
             <button
               onClick={handleTestConnection}
               disabled={isTesting || !formData.apiKey}
@@ -466,72 +446,6 @@ export function AIConfigSection({
             >
               {isTesting ? '测试中...' : '测试连接'}
             </button>
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <label className="block text-sm font-medium text-[var(--tab-options-text)]">
-                自定义 Prompt
-              </label>
-              <button
-                onClick={() => setFormData({ ...formData, enableCustomPrompt: !formData.enableCustomPrompt })}
-                className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
-                  formData.enableCustomPrompt
-                    ? 'bg-[var(--tab-options-button-primary-bg)] text-[var(--tab-options-button-primary-text)] hover:bg-[var(--tab-options-button-primary-hover)]'
-                    : 'bg-[var(--tab-options-button-hover-bg)] text-[var(--tab-options-button-text)] hover:bg-[color:var(--tab-options-button-border)]'
-                }`}
-              >
-                {formData.enableCustomPrompt ? '已启用' : '已禁用'}
-              </button>
-            </div>
-
-            {formData.enableCustomPrompt && (
-              <div className="space-y-3">
-                <textarea
-                  value={formData.customPrompt}
-                  onChange={(e) => setFormData({ ...formData, customPrompt: e.target.value })}
-                  rows={10}
-                  className="w-full px-3 py-2 border border-[color:var(--tab-options-button-border)] rounded-lg bg-[color:var(--tab-options-card-bg)] text-[var(--tab-options-title)] focus:outline-none focus:ring-2 focus:ring-[var(--tab-options-button-primary-bg)] font-mono text-xs"
-                  placeholder="自定义 AI 提示词..."
-                />
-
-                <div className="p-3 bg-[color:var(--tab-options-tag-bg)] rounded-lg">
-                  <p className="text-xs font-medium text-[var(--tab-options-pill-text)] mb-1">
-                    💡 专业示例 Prompt：
-                  </p>
-                  <pre className="text-xs text-[var(--tab-options-text-muted)] whitespace-pre-wrap max-h-32 overflow-y-auto">
-{DEFAULT_PROMPT_TEMPLATE}
-                  </pre>
-                  <div className="mt-2 flex gap-2">
-                    <button
-                      onClick={() => {
-                        setFormData({ ...formData, customPrompt: DEFAULT_PROMPT_TEMPLATE });
-                      }}
-                      className="text-xs px-2 py-1 bg-[var(--tab-options-button-primary-bg)] hover:bg-[var(--tab-options-button-primary-hover)] text-[var(--tab-options-button-primary-text)] rounded-md transition-colors duration-200"
-                    >
-                      使用此示例
-                    </button>
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(DEFAULT_PROMPT_TEMPLATE).then(() => {
-                          setSuccessMessage('示例 Prompt 已复制到剪贴板');
-                          setTimeout(() => setSuccessMessage(null), 2000);
-                        });
-                      }}
-                      className="text-xs px-2 py-1 bg-[var(--tab-options-button-primary-bg)] hover:bg-[var(--tab-options-button-primary-hover)] text-[var(--tab-options-button-primary-text)] rounded-md transition-colors duration-200"
-                    >
-                      复制示例
-                    </button>
-                    <button
-                      onClick={() => setFormData({ ...formData, enableCustomPrompt: !formData.enableCustomPrompt })}
-                      className="text-xs px-2 py-1 bg-[var(--tab-options-button-hover-bg)] hover:bg-[color:var(--tab-options-button-border)] text-[var(--tab-options-button-text)] rounded-md transition-colors duration-200"
-                    >
-                      {formData.enableCustomPrompt ? '禁用' : '启用'}自定义
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>

@@ -79,6 +79,9 @@ interface GridItemRow {
   shortcut_title: string | null
   shortcut_favicon: string | null
   config: string | null
+  browser_bookmark_id: string | null
+  parent_id: string | null
+  bookmark_folder_title: string | null
   created_at: string
   updated_at: string
 }
@@ -129,10 +132,15 @@ interface SyncRequest {
     size: string
     position: number
     group_id?: string
+    parent_id?: string
+    browser_bookmark_id?: string
     shortcut?: {
       url: string
       title: string
       favicon?: string
+    }
+    bookmark_folder?: {
+      title: string
     }
     config?: Record<string, unknown>
   }>
@@ -209,12 +217,17 @@ export const onRequestGet: PagesFunction<Env, RouteParams, ApiKeyAuthContext>[] 
           size: item.size,
           position: item.position,
           groupId: item.group_id,
+          parentId: item.parent_id || undefined,
+          browserBookmarkId: item.browser_bookmark_id || undefined,
           shortcut: item.shortcut_url
             ? {
                 url: item.shortcut_url,
                 title: item.shortcut_title || '',
                 favicon: item.shortcut_favicon || undefined,
               }
+            : undefined,
+          bookmarkFolder: item.bookmark_folder_title
+            ? { title: item.bookmark_folder_title }
             : undefined,
           config: item.config ? JSON.parse(item.config) : undefined,
           createdAt: item.created_at,
@@ -374,8 +387,10 @@ export const onRequestPost: PagesFunction<Env, RouteParams, ApiKeyAuthContext>[]
           const id = item.id || generateUUID()
           await context.env.DB.prepare(
             `INSERT INTO newtab_grid_items (id, user_id, group_id, type, size, position, 
-             shortcut_url, shortcut_title, shortcut_favicon, config, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+             shortcut_url, shortcut_title, shortcut_favicon, config, 
+             browser_bookmark_id, parent_id, bookmark_folder_title,
+             created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
           )
             .bind(
               id,
@@ -388,6 +403,9 @@ export const onRequestPost: PagesFunction<Env, RouteParams, ApiKeyAuthContext>[]
               item.shortcut?.title ? sanitizeString(item.shortcut.title, 200) : null,
               item.shortcut?.favicon ? sanitizeString(item.shortcut.favicon, 2000) : null,
               item.config ? JSON.stringify(item.config) : null,
+              item.browser_bookmark_id ? sanitizeString(item.browser_bookmark_id, 100) : null,
+              item.parent_id ? sanitizeString(item.parent_id, 100) : null,
+              item.bookmark_folder?.title ? sanitizeString(item.bookmark_folder.title, 200) : null,
               now,
               now
             )
