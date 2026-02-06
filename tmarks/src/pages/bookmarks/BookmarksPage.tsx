@@ -123,6 +123,12 @@ export function BookmarksPage() {
     return Array.from(uniqueBookmarksMap.values())
   }, [bookmarksQuery.data])
 
+  // 从第一页的 meta 中获取后端返回的相关标签ID
+  const serverRelatedTagIds = useMemo(() => {
+    const firstPageMeta = bookmarksQuery.data?.pages?.[0]?.meta
+    return firstPageMeta?.related_tag_ids
+  }, [bookmarksQuery.data?.pages])
+
   const isInitialLoading = bookmarksQuery.isLoading && bookmarks.length === 0
   const isFetchingExisting = bookmarksQuery.isFetching && !isInitialLoading
 
@@ -220,6 +226,7 @@ export function BookmarksPage() {
               bookmarks={bookmarks}
               isLoadingBookmarks={isInitialLoading || isFetchingExisting}
               searchQuery={searchMode === 'tag' ? debouncedSearchKeyword : ''}
+              relatedTagIds={serverRelatedTagIds}
             />
           </aside>
 
@@ -345,6 +352,7 @@ export function BookmarksPage() {
                   bookmarks={bookmarks}
                   isLoadingBookmarks={isInitialLoading || isFetchingExisting}
                   searchQuery={searchMode === 'tag' ? debouncedSearchKeyword : ''}
+                  relatedTagIds={serverRelatedTagIds}
                 />
               </div>
             </div>

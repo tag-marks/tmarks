@@ -113,6 +113,7 @@ export interface BookmarksResponse {
     count: number
     next_cursor?: string
     has_more: boolean
+    related_tag_ids?: string[] // 相关标签ID列表（当有标签筛选时）
   }
 }
 
@@ -145,7 +146,7 @@ export interface TagsResponse {
 
 // 用户偏好类型
 export type TagLayoutPreference = 'grid' | 'masonry'
-export type SortByPreference = 'created' | 'updated' | 'popular'
+export type SortByPreference = 'created' | 'updated' | 'pinned' | 'popular'
 
 export type DefaultBookmarkIcon = 'favicon' | 'letter' | 'hash' | 'none' | 'orbital-spinner'
 
@@ -290,7 +291,7 @@ export interface BookmarkQueryParams {
   tags?: string // 逗号分隔的标签ID
   page_size?: number
   page_cursor?: string
-  sort?: 'created' | 'updated' | 'popular'
+  sort?: 'created' | 'updated' | 'pinned' | 'popular'
   archived?: boolean
   pinned?: boolean
 }
